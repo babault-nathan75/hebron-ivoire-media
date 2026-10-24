@@ -15,19 +15,9 @@ import {
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
-const ADMIN_EMAILS = new Set(["babaultnathancharles@gmail.com"]);
-
-/** Admins from the code / ADMIN_EMAILS: they cannot be removed from the back office. */
-export function isRootAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const normalized = email.trim().toLowerCase();
-  const fromEnv = ENV.adminEmails.split(",").map(e => e.trim().toLowerCase());
-  return ADMIN_EMAILS.has(normalized) || fromEnv.includes(normalized);
-}
 
 export async function isAdminEmail(email: string | null | undefined): Promise<boolean> {
   if (!email) return false;
-  if (isRootAdminEmail(email)) return true;
   const db = await getDb();
   if (!db) return false;
   const rows = await db.select({ id: admins.id }).from(admins).where(eq(admins.email, email.trim().toLowerCase())).limit(1);
@@ -96,12 +86,7 @@ export async function setUserPasswordHash(openId: string, passwordHash: string) 
 export async function listAdmins() {
   const db = await getDb();
   if (!db) throw new Error("Base de données indisponible.");
-  const rows = await db.select().from(admins).orderBy(asc(admins.createdAt));
-  const roots = Array.from(new Set([...Array.from(ADMIN_EMAILS), ...ENV.adminEmails.split(",").map(e => e.trim().toLowerCase()).filter(Boolean)]));
-  return [
-    ...roots.map(email => ({ email, root: true, createdAt: null as Date | null, addedBy: null as string | null })),
-    ...rows.filter(r => !roots.includes(r.email)).map(r => ({ email: r.email, root: false, createdAt: r.createdAt as Date | null, addedBy: r.addedBy })),
-  ];
+  return db.select().from(admins).orderBy(asc(admins.createdAt));
 }
 
 export async function addAdmin(email: string, addedBy: string) {

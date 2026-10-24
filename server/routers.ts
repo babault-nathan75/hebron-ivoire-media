@@ -187,7 +187,6 @@ export const appRouter = router({
       .input(z.object({ email: z.string().email() }))
       .mutation(async ({ ctx, input }) => {
         const email = normalizeEmail(input.email);
-        if (dbm.isRootAdminEmail(email)) throw new TRPCError({ code: "BAD_REQUEST", message: "Cet administrateur principal ne peut pas être retiré." });
         if (email === ctx.user.email) throw new TRPCError({ code: "BAD_REQUEST", message: "Vous ne pouvez pas vous retirer vous-même." });
         await dbm.removeAdmin(email);
         return { success: true } as const;

@@ -1,0 +1,80 @@
+[build]
+  command = "pnpm build:netlify"
+  publish = "dist/public"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Valeurs publiques (pas des secrets) : empêche le faux positif du scan de secrets.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_APP_ID,EMAIL_SERVER_HOST,EMAIL_SERVER_PORT,EMAIL_FROM,CLOUDINARY_CLOUD_NAME,CLOUDINARY_API_KEY,SITE_URL"
+  SECRETS_SCAN_OMIT_PATHS = ".env.example"
+
+[functions]
+  node_bundler = "none"
+  included_files = ["dist/public/index.html"]
+
+# --- Dynamic routes: served by the function (API, SEO meta, sitemap) ---
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/robots.txt"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/article/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/evenement/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/rubrique/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/actualites"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/admin"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+# --- Everything else: single-page app fallback ---
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

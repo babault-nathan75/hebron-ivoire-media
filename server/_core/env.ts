@@ -5,7 +5,6 @@ export const ENV = {
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
-  adminEmails: process.env.ADMIN_EMAILS ?? "",
   smtpHost: process.env.EMAIL_SERVER_HOST ?? "",
   smtpPort: Number(process.env.EMAIL_SERVER_PORT ?? 465),
   smtpUser: process.env.EMAIL_SERVER_USER ?? "",

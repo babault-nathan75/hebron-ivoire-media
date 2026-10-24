@@ -28,8 +28,7 @@ function createContext(role: TestUser["role"] | null): TrpcContext {
 }
 
 describe("content editorial access", () => {
-  it("allowlists only the confirmed OAuth email, ignoring case and surrounding spaces", async () => {
-    expect(await isAdminEmail("  BabaultNathanCharles@Gmail.com ")).toBe(true);
+  it("grants no admin rights to unknown emails or without a database (admins live in the database only)", async () => {
     expect(await isAdminEmail("another@example.com")).toBe(false);
     expect(await isAdminEmail(null)).toBe(false);
   });

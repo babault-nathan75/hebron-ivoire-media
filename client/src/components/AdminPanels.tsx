@@ -118,11 +118,9 @@ export function AdminsPanel({ currentEmail }: { currentEmail?: string | null }) 
             <span className="admin-avatar">{a.email[0].toUpperCase()}</span>
             <span className="admin-person-copy">
               <strong>{a.email}</strong>
-              <small>{a.root ? "Administrateur principal" : `Ajouté par ${a.addedBy ?? "—"}`}</small>
+              <small>{a.addedBy === "console" ? "Créé depuis la console" : `Ajouté par ${a.addedBy ?? "—"}`}</small>
             </span>
-            {a.root
-              ? <span className="admin-badge"><ShieldCheck size={13} /> Principal</span>
-              : a.email === currentEmail
+            {a.email === currentEmail
                 ? <span className="admin-badge">Vous</span>
                 : <button className="admin-remove" disabled={remove.isPending} onClick={() => { if (window.confirm(`Retirer ${a.email} ?`)) remove.mutate({ email: a.email }); }} aria-label={`Retirer ${a.email}`}><Trash2 size={15} /></button>}
           </div>
