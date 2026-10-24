@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useStickyNav } from "@/lib/useStickyNav";
 import { Link, useLocation } from "wouter";
 import { SITE_DEFAULTS } from "@shared/siteSettings";
 import { trpc } from "@/lib/trpc";
-import { ArrowUpRight, LoaderCircle, Mail, MapPin, Menu, Search, X } from "lucide-react";
+import { ArrowUpRight, Facebook, Instagram, LoaderCircle, Mail, MapPin, Menu, Search, Send, X, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "./BrandMark";
 
@@ -16,6 +17,8 @@ export function SiteHeader() {
   const t = useSiteText();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  useStickyNav(headerRef);
   const { data: categories } = trpc.content.categories.useQuery(undefined, { staleTime: 60_000 });
   const links = [
     { label: "Accueil", href: "/" },
@@ -32,7 +35,7 @@ export function SiteHeader() {
           <div className="utility-right"><span>{t("city")}</span></div>
         </div>
       </div>
-      <header className="site-header is-scrolled">
+      <header ref={headerRef} className="site-header is-scrolled">
         <div className="container header-main">
           <BrandMark />
           <div className="header-actions">
@@ -61,15 +64,12 @@ function SubscribeForm() {
     onSuccess: () => { setDone(true); setEmail(""); },
     onError: (e) => toast.error(e.message),
   });
-  if (done) return <p className="subscribe-done">Merci ! Vous êtes inscrit(e) aux nouveautés.</p>;
+  if (done) return <p className="ft-done">Merci ! Vous êtes inscrit(e) : vous recevrez les prochaines nouveautés.</p>;
   return (
-    <form className="subscribe" onSubmit={(e) => { e.preventDefault(); subscribe.mutate({ email, website }); }}>
-      <span className="footer-label">RECEVOIR LES NOUVEAUTÉS</span>
-      <div>
-        <input type="email" required maxLength={320} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Votre adresse e-mail" aria-label="Adresse e-mail" />
-        <input className="hp-field" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(e) => setWebsite(e.target.value)} />
-        <button disabled={subscribe.isPending} aria-label="S’abonner">{subscribe.isPending ? <LoaderCircle className="spin" size={15} /> : <ArrowUpRight size={16} />}</button>
-      </div>
+    <form className="ft-subscribe" onSubmit={(e) => { e.preventDefault(); subscribe.mutate({ email, website }); }}>
+      <input type="email" required maxLength={320} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Votre adresse e-mail" aria-label="Adresse e-mail" />
+      <input className="hp-field" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(e) => setWebsite(e.target.value)} />
+      <button disabled={subscribe.isPending}>{subscribe.isPending ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />} S’abonner</button>
     </form>
   );
 }
@@ -77,46 +77,63 @@ function SubscribeForm() {
 export function SiteFooter() {
   const t = useSiteText();
   const { data: content } = trpc.content.listPublished.useQuery(undefined, { staleTime: 30_000 });
-  const has = (name: string) => content?.articles.some((a) => a.category.toLocaleLowerCase("fr") === name);
-  const links = (items: [string, string, boolean][]) => items.filter(([, , show]) => show).map(([label, href]) => <a key={label} href={href}>{label}</a>);
-  const any = Boolean(content?.articles.length);
+  const { data: categories } = trpc.content.categories.useQuery(undefined, { staleTime: 60_000 });
+  const socials = [
+    { label: "Facebook", href: t("facebookUrl"), icon: Facebook, className: "fb" },
+    { label: "Instagram", href: t("instagramUrl"), icon: Instagram, className: "ig" },
+    { label: "YouTube", href: t("youtubeUrl"), icon: Youtube, className: "yt" },
+  ];
   return (
-    <footer className="site-footer">
-      <div className="container footer-main">
-        <div className="footer-brand-col">
+    <footer className="site-footer ft">
+      <div className="container ft-cta">
+        <div>
+          <span className="ft-kicker">Restez informé</span>
+          <h2>Les nouveaux récits, directement dans votre boîte e-mail.</h2>
+        </div>
+        <SubscribeForm />
+      </div>
+
+      <div className="container ft-grid">
+        <div className="ft-brand">
           <BrandMark inverse />
           <p>{t("footerAbout")}</p>
-          <div className="footer-socials" aria-label="Réseaux sociaux">
-            <a href={t("facebookUrl")} aria-label="Facebook" target="_blank" rel="noopener noreferrer"><span>f</span></a>
-            <a href={t("instagramUrl")} aria-label="Instagram" target="_blank" rel="noopener noreferrer"><span>ig</span></a>
-            <a href={t("youtubeUrl")} aria-label="YouTube" target="_blank" rel="noopener noreferrer"><span>▶</span></a>
+          <div className="ft-socials" aria-label="Réseaux sociaux">
+            {socials.map(({ label, href, icon: Icon, className }) => (
+              <a key={label} className={className} href={href} aria-label={label} title={label} target="_blank" rel="noopener noreferrer"><Icon size={18} /></a>
+            ))}
           </div>
         </div>
-        <div className="footer-links">
-          <span className="footer-label">EXPLORER</span>
-          {links([
-            ["Toute l’actualité", "/actualites", any],
-            ["Événements", "/#evenements", Boolean(content?.events.length)],
-            ["Interviews", "/rubrique/Interview", Boolean(has("interview"))],
-            ["Reportages", "/rubrique/Reportage", Boolean(has("reportage"))],
-          ])}
-        </div>
-        <div className="footer-links">
-          <span className="footer-label">LES RENDEZ-VOUS</span>
-          {links([
-            ["Témoignages", "/rubrique/T%C3%A9moignage", Boolean(has("témoignage"))],
-            ["Vie de Hébron-Ivoire", "/rubrique/Vie%20de%20H%C3%A9bron-Ivoire", Boolean(has("vie de hébron-ivoire"))],
-            ["Proposer un sujet", "/#contact", true],
-          ])}
-        </div>
-        <div className="footer-contact">
-          <span className="footer-label">RESTONS EN LIEN</span>
-          <p><MapPin size={15} /> {t("city")}</p>
-          <a href={`mailto:${t("contactEmail")}`}><Mail size={15} /> {t("contactEmail")}</a>
-          <SubscribeForm />
+
+        <nav className="ft-col" aria-label="Explorer">
+          <h3>Explorer</h3>
+          <Link href="/">Accueil</Link>
+          <Link href="/actualites">Toute l’actualité</Link>
+          {content?.events.length ? <a href="/#evenements">Événements</a> : null}
+          <a href="/#contact">Contact</a>
+        </nav>
+
+        <nav className="ft-col" aria-label="Rubriques">
+          <h3>Rubriques</h3>
+          {categories?.length
+            ? categories.slice(0, 6).map((c) => <Link key={c.category} href={`/rubrique/${encodeURIComponent(c.category)}`}>{c.category}</Link>)
+            : <span className="ft-muted">Bientôt</span>}
+        </nav>
+
+        <div className="ft-col">
+          <h3>Nous joindre</h3>
+          <p className="ft-line"><MapPin size={15} /> {t("city")}</p>
+          <a className="ft-line" href={`mailto:${t("contactEmail")}`}><Mail size={15} /> {t("contactEmail")}</a>
+          <a className="ft-link-cta" href="/#contact">Proposer un sujet <ArrowUpRight size={14} /></a>
         </div>
       </div>
-      <div className="container footer-bottom"><span>© {new Date().getFullYear()} <a href="/admin" className="footer-admin-link">HÉBRON-IVOIRE.</a> TOUS DROITS RÉSERVÉS.</span><span>Un regard qui rassemble <i>·</i> Une parole qui inspire</span><a href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Retour en haut ↑</a></div>
+
+      <div className="ft-bottom">
+        <div className="container">
+          <span>© {new Date().getFullYear()} <a href="/admin" className="footer-admin-link">HÉBRON-IVOIRE.</a> TOUS DROITS RÉSERVÉS.</span>
+          <span className="ft-tagline">Un regard qui rassemble <i>·</i> Une parole qui inspire</span>
+          <a href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Retour en haut ↑</a>
+        </div>
+      </div>
       {t("footerNote") && <p className="demo-note">{t("footerNote")}</p>}
     </footer>
   );

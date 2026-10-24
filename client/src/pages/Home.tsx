@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useStickyNav } from "@/lib/useStickyNav";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -90,6 +91,8 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  useStickyNav(headerRef);
   const [activeId, setActiveId] = useState("accueil");
   const [scrolled, setScrolled] = useState(false);
   const { data: siteData } = trpc.site.settings.useQuery(undefined, { staleTime: 30_000 });
@@ -220,7 +223,7 @@ export default function Home() {
         </div>
       </div>
 
-      <header className={`site-header ${scrolled ? "is-scrolled" : ""}`}>
+      <header ref={headerRef} className={`site-header ${scrolled ? "is-scrolled" : ""}`}>
         <div className="container header-main">
           <BrandMark />
           <div className="header-actions">
