@@ -46,6 +46,7 @@ export const admins = pgTable("admins", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 320 }).notNull().unique(),
   addedBy: varchar("addedBy", { length: 320 }),
+  guideSeenAt: timestamp("guideSeenAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

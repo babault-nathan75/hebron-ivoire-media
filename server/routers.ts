@@ -172,6 +172,11 @@ export const appRouter = router({
   }),
   admins: router({
     list: adminProcedure.query(() => dbm.listAdmins()),
+    onboarding: adminProcedure.query(async ({ ctx }) => ({ seen: await dbm.hasSeenGuide(ctx.user.email) })),
+    completeOnboarding: adminProcedure.mutation(async ({ ctx }) => {
+      await dbm.markGuideSeen(ctx.user.email);
+      return { success: true } as const;
+    }),
     add: adminProcedure
       .input(z.object({ email: z.string().email(), password: z.string().min(8).max(200).optional() }))
       .mutation(async ({ ctx, input }) => {

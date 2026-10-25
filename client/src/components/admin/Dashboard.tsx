@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, FileText, LoaderCircle, Plus, Send, Pencil } from "lucide-react";
 
-type Props = { onNavigate: (section: "content" | "messages" | "site" | "admins", kind?: "articles" | "events") => void };
+type Props = { onNavigate: (section: "content" | "messages" | "site" | "admins" | "guide", kind?: "articles" | "events") => void };
 
 const formatDate = (value: Date | string) =>
   new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(new Date(value));
@@ -80,6 +80,7 @@ export function Dashboard({ onNavigate }: Props) {
           <div className="adm-quick">
             <button onClick={() => onNavigate("content", "events")}><CalendarDays size={15} /> Nouvel événement</button>
             <button onClick={() => onNavigate("site")}><FileText size={15} /> Modifier les textes du site</button>
+            <button onClick={() => onNavigate("guide")}><FileText size={15} /> Lire le guide de l’administrateur</button>
             <button onClick={() => onNavigate("admins")}><Plus size={15} /> Ajouter un administrateur</button>
           </div>
         </section>

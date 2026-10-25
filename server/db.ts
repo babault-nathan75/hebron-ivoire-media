@@ -89,6 +89,19 @@ export async function listAdmins() {
   return db.select().from(admins).orderBy(asc(admins.createdAt));
 }
 
+export async function hasSeenGuide(email: string | null | undefined) {
+  const db = await getDb();
+  if (!db || !email) return true;
+  const [row] = await db.select({ seen: admins.guideSeenAt }).from(admins).where(eq(admins.email, email.trim().toLowerCase())).limit(1);
+  return row ? Boolean(row.seen) : true;
+}
+
+export async function markGuideSeen(email: string | null | undefined) {
+  const db = await getDb();
+  if (!db || !email) return;
+  await db.update(admins).set({ guideSeenAt: new Date() }).where(eq(admins.email, email.trim().toLowerCase()));
+}
+
 export async function addAdmin(email: string, addedBy: string) {
   const db = await getDb();
   if (!db) throw new Error("Base de données indisponible.");

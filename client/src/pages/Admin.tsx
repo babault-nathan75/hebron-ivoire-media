@@ -4,11 +4,14 @@ import AdminLogin from "@/components/AdminLogin";
 import { AdminsPanel, SiteSettingsPanel } from "@/components/AdminPanels";
 import { ContentManager, type Kind } from "@/components/admin/ContentManager";
 import { Dashboard } from "@/components/admin/Dashboard";
+import { Guide } from "@/components/admin/Guide";
 import { MessagesPanel } from "@/components/admin/MessagesPanel";
 import { trpc } from "@/lib/trpc";
 import {
   ArrowLeft,
   ArrowUpRight,
+  BookOpen,
+  Sparkles,
   Eye,
   EyeOff,
   Inbox,
@@ -25,7 +28,7 @@ import {
 import { toast } from "sonner";
 import { Link } from "wouter";
 
-type Section = "dashboard" | "content" | "messages" | "site" | "admins";
+type Section = "dashboard" | "content" | "messages" | "site" | "admins" | "guide";
 
 const NAV: { id: Section; label: string; icon: typeof FileText }[] = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -33,7 +36,34 @@ const NAV: { id: Section; label: string; icon: typeof FileText }[] = [
   { id: "messages", label: "Messages", icon: Inbox },
   { id: "site", label: "Contenu du site", icon: SlidersHorizontal },
   { id: "admins", label: "Administrateurs", icon: ShieldCheck },
+  { id: "guide", label: "Guide", icon: BookOpen },
 ];
+
+function WelcomeDialog({ name, onGuide, onClose }: { name: string; onGuide: () => void; onClose: () => void }) {
+  const steps = [
+    ["Publications", "Écrivez des articles et créez des événements, en brouillon ou publiés."],
+    ["Contenu du site", "Modifiez les textes fixes et les liens des réseaux sociaux."],
+    ["Messages", "Lisez les messages des visiteurs et la liste des abonnés."],
+    ["Administrateurs", "Invitez ou retirez des membres de l’équipe."],
+  ];
+  return (
+    <div className="adm-modal" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+      <div className="adm-card adm-modal-card adm-welcome">
+        <span className="adm-welcome-icon"><Sparkles size={22} /></span>
+        <h2 id="welcome-title">Bienvenue{name ? `, ${name}` : ""} !</h2>
+        <p>Voici votre espace rédaction. En un coup d’œil, voici à quoi sert chaque section :</p>
+        <ul className="adm-welcome-list">
+          {steps.map(([title, text]) => <li key={title}><strong>{title}</strong><span>{text}</span></li>)}
+        </ul>
+        <p>Un <strong>guide complet</strong> est disponible à tout moment dans le menu (« Guide »). Il explique chaque fonction pas à pas.</p>
+        <div className="adm-modal-actions">
+          <button className="adm-btn adm-btn-ghost" onClick={onClose}>Plus tard</button>
+          <button className="adm-btn adm-btn-primary" onClick={onGuide}><BookOpen size={15} /> Lire le guide</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function PasswordDialog({ onClose }: { onClose: () => void }) {
   const [password, setPassword] = useState("");
@@ -68,6 +98,9 @@ export default function Admin() {
   const [section, setSection] = useState<Section>("dashboard");
   const [kind, setKind] = useState<Kind>("articles");
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const utils = trpc.useUtils();
+  const onboarding = trpc.admins.onboarding.useQuery(undefined, { enabled: user?.role === "admin", retry: false });
+  const completeOnboarding = trpc.admins.completeOnboarding.useMutation({ onSuccess: () => utils.admins.onboarding.invalidate() });
   const unread = trpc.contact.unread.useQuery(undefined, { enabled: user?.role === "admin", refetchInterval: 60_000 });
 
   if (loading) return <div className="editor-loading"><LoaderCircle className="spin" />Chargement de l’espace rédaction…</div>;
@@ -125,6 +158,7 @@ export default function Admin() {
 
       <main className="adm-main">
         {section === "dashboard" && <Dashboard onNavigate={go} />}
+        {section === "guide" && <Guide onNavigate={go} />}
         {section === "content" && <ContentManager kind={kind} onKindChange={setKind} />}
         {section === "messages" && <MessagesPanel />}
         {section === "site" && <SiteSettingsPanel />}
@@ -132,6 +166,13 @@ export default function Admin() {
       </main>
 
       {passwordOpen && <PasswordDialog onClose={() => setPasswordOpen(false)} />}
+      {onboarding.data && !onboarding.data.seen && !completeOnboarding.isPending && (
+        <WelcomeDialog
+          name={user.name && user.name !== user.email ? user.name : ""}
+          onClose={() => completeOnboarding.mutate()}
+          onGuide={() => { completeOnboarding.mutate(); setSection("guide"); }}
+        />
+      )}
     </div>
   );
 }
