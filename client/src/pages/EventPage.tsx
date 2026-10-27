@@ -14,7 +14,7 @@ export default function EventPage() {
   const [, params] = useRoute("/evenement/:slug");
   const slug = params?.slug ?? "";
   const { data: event, isLoading } = trpc.content.event.useQuery({ slug }, { enabled: Boolean(slug), retry: false });
-  useDocumentMeta({ title: event ? `${event.title} — Hébron-Ivoire` : "Hébron-Ivoire", description: event?.excerpt, image: event?.imageUrl });
+  useDocumentMeta({ title: event ? `${event.title} — Impact-Nation` : "Impact-Nation", description: event?.excerpt, image: event?.imageUrl });
   useEffect(() => { window.scrollTo({ top: 0 }); }, [slug]);
 
   if (isLoading) return <div className="editor-loading"><LoaderCircle className="spin" /> Chargement…</div>;
@@ -23,20 +23,20 @@ export default function EventPage() {
   return (
     <div className="site-shell">
       <SiteHeader />
-      <main className="article-page">
-        <div className="container article-wrap">
-          <Link className="back-link" href="/"><ArrowLeft size={15} /> Accueil</Link>
-          <header className="article-head">
-            <span className="category-label">Événement</span>
+      <main className="np-article">
+        <div className="container">
+          <nav className="np-crumbs" aria-label="Fil d’Ariane"><Link href="/">Accueil</Link><ArrowLeft size={13} style={{ transform: "rotate(180deg)" }} /><span>Agenda</span></nav>
+          <header className="np-article-head">
+            <span className="np-kicker">Événement</span>
             <h1>{event.title}</h1>
-            <p className="article-standfirst">{event.excerpt}</p>
-            <div className="article-byline">
+            <p className="np-article-standfirst">{event.excerpt}</p>
+            <div className="np-article-meta">
               <span><CalendarDays size={14} /> {fmt(event.startsAt)}</span>
               <span><MapPin size={14} /> {event.location}</span>
             </div>
           </header>
-          {event.imageUrl && <figure className="article-cover"><img src={event.imageUrl} alt="" /></figure>}
-          <ArticleBody source={event.details} />
+          {event.imageUrl && <figure className="np-cover"><img src={event.imageUrl} alt="" /></figure>}
+          <div className="np-article-body"><ArticleBody source={event.details} /></div>
         </div>
       </main>
       <SiteFooter />

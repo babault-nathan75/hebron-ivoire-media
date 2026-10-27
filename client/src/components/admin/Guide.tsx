@@ -15,11 +15,15 @@ import {
   Rocket,
   ShieldCheck,
   SlidersHorizontal,
+  Tags,
   TriangleAlert,
   Trash2,
   Type,
   Users,
+  Video,
 } from "lucide-react";
+
+import { ADMIN_PATH } from "@shared/adminPath";
 
 type Section = { id: string; title: string; icon: typeof BookOpen; body: ReactNode };
 
@@ -41,7 +45,7 @@ const SECTIONS: Section[] = [
           messages des visiteurs et équipe d’administrateurs. Rien ne se modifie dans le code : tout se fait ici, depuis un navigateur.
         </p>
         <h3>Se connecter</h3>
-        <p>Deux méthodes existent, au choix, sur la page <code>/admin</code> :</p>
+        <p>Deux méthodes existent, au choix, sur la page <code>{ADMIN_PATH}</code> :</p>
         <ul>
           <li><strong>Mot de passe</strong> : saisissez votre e-mail et votre mot de passe. L’icône œil permet d’afficher ou de masquer ce que vous tapez.</li>
           <li><strong>Code par e-mail</strong> : saisissez votre e-mail, cliquez sur « Recevoir un code », puis tapez le code à 6 chiffres reçu par e-mail.</li>
@@ -92,8 +96,8 @@ const SECTIONS: Section[] = [
     body: (
       <>
         <Steps>
-          <li>Ouvrez <strong>Publications → Articles</strong> puis cliquez sur <strong>« Nouvel article »</strong>.</li>
-          <li>Renseignez le <strong>titre</strong>, le <strong>résumé</strong> et le <strong>texte</strong> (voir « Mettre en forme » ci-dessous).</li>
+          <li>Ouvrez <strong>Publications → Articles</strong> puis cliquez sur <strong>« Nouvelle publication »</strong>.</li>
+          <li>Choisissez le <strong>type</strong> (Texte, Vidéo ou Podcast : voir la section suivante), puis renseignez le <strong>titre</strong>, le <strong>résumé</strong> et le <strong>texte</strong> (voir « Mettre en forme »).</li>
           <li>Dans la colonne de droite, choisissez la <strong>rubrique</strong>, ajoutez une <strong>image de couverture</strong> et réglez le <strong>statut</strong>.</li>
           <li>Cliquez sur <strong>« Enregistrer »</strong> (ou <K>Ctrl</K> + <K>S</K>).</li>
         </Steps>
@@ -102,7 +106,7 @@ const SECTIONS: Section[] = [
           <tbody>
             <tr><th>Titre</th><td>Il apparaît partout. L’adresse (slug) s’en déduit automatiquement.</td></tr>
             <tr><th>Résumé</th><td>2 à 3 phrases (700 caractères maximum). Affiché sur les cartes, dans la recherche et dans l’aperçu de partage WhatsApp/Facebook.</td></tr>
-            <tr><th>Rubrique</th><td>Détermine où l’article s’affiche (voir « Où apparaissent mes contenus »).</td></tr>
+            <tr><th>Rubrique</th><td>Détermine où l’article s’affiche. Les rubriques se créent dans l’onglet <strong>Rubriques</strong>.</td></tr>
             <tr><th>À la une</th><td>Case à cocher : l’article passe en priorité sur la page d’accueil.</td></tr>
             <tr><th>Image de couverture</th><td>Fortement recommandée : sans image, un fond vert décoratif est utilisé.</td></tr>
             <tr><th>Auteur</th><td>Facultatif. Nom affiché sous le titre.</td></tr>
@@ -123,6 +127,56 @@ const SECTIONS: Section[] = [
           « Programmé · date ». Laissez le champ vide pour publier immédiatement.
         </p>
         <Tip>Quand vous modifiez un article déjà publié, sa date de publication d’origine est conservée : il ne « remonte » pas en tête de liste.</Tip>
+      </>
+    ),
+  },
+  {
+    id: "video-podcast",
+    title: "Publier une vidéo ou un podcast",
+    icon: Video,
+    body: (
+      <>
+        <p>Une publication peut être de trois types, à choisir tout en haut de l’éditeur :</p>
+        <ul>
+          <li><strong>Texte</strong> : un article classique, avec une image de couverture.</li>
+          <li><strong>Vidéo</strong> : le lecteur s’affiche en haut de la page, avant le texte.</li>
+          <li><strong>Podcast</strong> : un lecteur audio avec l’image de couverture à côté.</li>
+        </ul>
+        <h3>Ajouter le média</h3>
+        <Steps>
+          <li>Choisissez le type <strong>Vidéo</strong> ou <strong>Podcast</strong>.</li>
+          <li>Cliquez sur la zone <strong>« Téléverser… »</strong> pour envoyer un fichier (vidéo : 100 Mo maximum, audio : 50 Mo maximum), <strong>ou</strong> collez un lien dans le champ en dessous.</li>
+          <li>Liens acceptés : <strong>YouTube</strong> (<code>https://youtu.be/…</code>), ou l’adresse directe d’un fichier <code>.mp4</code>, <code>.webm</code>, <code>.mp3</code>, <code>.m4a</code>.</li>
+          <li>Un aperçu du lecteur s’affiche : vérifiez qu’il fonctionne avant d’enregistrer.</li>
+          <li>Remplissez le titre, le résumé et l’image de couverture. Le champ « Description / transcription » est facultatif.</li>
+        </Steps>
+        <Tip>Pour les vidéos longues, mettez-les sur YouTube et collez simplement le lien : c’est gratuit, rapide pour les visiteurs et cela n’utilise pas votre espace de stockage Cloudinary.</Tip>
+        <p>
+          Les vidéos et podcasts apparaissent avec une icône (lecture ou casque) sur les cartes, dans la rubrique choisie,
+          ainsi que dans les sections <strong>Vidéos</strong> et <strong>Podcasts</strong> de la page d’accueil et sur les pages <code>/videos</code> et <code>/podcasts</code>.
+          Dans la colonne de droite, « Durée » sert à indiquer la durée en minutes.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "rubriques",
+    title: "Créer et gérer les rubriques",
+    icon: Tags,
+    body: (
+      <>
+        <p>Les rubriques sont les sections du journal (Actualité, Société, Sport, Économie…). C’est vous qui décidez de leur liste.</p>
+        <Steps>
+          <li>Ouvrez l’onglet <strong>Rubriques</strong>.</li>
+          <li>Saisissez le <strong>nom</strong> (par exemple « Sport ») et, si vous le souhaitez, une <strong>description</strong> affichée en haut de la page de la rubrique.</li>
+          <li>Cliquez sur <strong>« Créer la rubrique »</strong>. Elle devient disponible dans l’éditeur de publications.</li>
+        </Steps>
+        <ul>
+          <li><strong>Ordre</strong> : les flèches haut/bas règlent l’ordre dans le menu et sur la page d’accueil.</li>
+          <li><strong>Renommer</strong> : le crayon change le nom ; toutes les publications de la rubrique suivent, mais l’adresse de la rubrique change aussi.</li>
+          <li><strong>Supprimer</strong> : possible uniquement si la rubrique est vide. Sinon, déplacez ou supprimez d’abord ses publications.</li>
+        </ul>
+        <Tip>Une rubrique n’apparaît dans le menu et sur la page d’accueil qu’une fois qu’elle contient au moins une publication visible. Inutile donc de la cacher : elle se montre toute seule.</Tip>
       </>
     ),
   },
@@ -234,19 +288,20 @@ Un paragraphe avec du **gras**, de l'*italique* et un [lien](https://exemple.com
     icon: Eye,
     body: (
       <>
-        <p>Le site s’organise automatiquement à partir de ce que vous publiez. Une section sans contenu est simplement masquée, et son lien disparaît du menu.</p>
+        <p>La page d’accueil est organisée comme celle d’un journal et se construit toute seule à partir de ce que vous publiez. Une section sans contenu est masquée.</p>
         <table className="gd-table">
           <tbody>
-            <tr><th>Grande vedette (haut de l’accueil)</th><td>L’article « à la une » le plus récent, sinon le plus récent.</td></tr>
-            <tr><th>« À la une »</th><td>Les articles suivants, dans le même ordre.</td></tr>
-            <tr><th>Interviews</th><td>Le premier article de rubrique <strong>Interview</strong>.</td></tr>
-            <tr><th>Reportages</th><td>Le premier article de rubrique <strong>Reportage</strong>.</td></tr>
-            <tr><th>Témoignages</th><td>Le premier article de rubrique <strong>Témoignage</strong>.</td></tr>
-            <tr><th>Pages de rubrique</th><td>Chaque rubrique a sa page paginée (9 articles par page), ex. <code>/rubrique/Interview</code>.</td></tr>
-            <tr><th>Toute l’actualité</th><td><code>/actualites</code> : tous les articles publiés, du plus récent au plus ancien.</td></tr>
+            <tr><th>À la une (grande photo)</th><td>La publication cochée « à la une » la plus récente, sinon la plus récente tout court.</td></tr>
+            <tr><th>Les 3 titres sous la une</th><td>Les trois publications suivantes, de la plus récente à la plus ancienne.</td></tr>
+            <tr><th>Dernières nouvelles</th><td>La colonne de droite : les 7 publications les plus récentes avec leur heure.</td></tr>
+            <tr><th>Un bloc par rubrique</th><td>Chaque rubrique qui a du contenu a son bloc (jusqu’à 3 publications), dans l’ordre défini dans l’onglet Rubriques.</td></tr>
+            <tr><th>Vidéos / Podcasts</th><td>Bandeaux dédiés qui reprennent vos dernières publications de type Vidéo ou Podcast.</td></tr>
+            <tr><th>Agenda</th><td>Les prochains événements publiés (4 maximum).</td></tr>
+            <tr><th>Menu</th><td>Les rubriques non vides, puis « Vidéos » et « Podcasts » s’il y en a.</td></tr>
+            <tr><th>Pages dédiées</th><td><code>/actualites</code> (tout), <code>/rubrique/nom</code>, <code>/videos</code>, <code>/podcasts</code>, avec 9 publications par page.</td></tr>
           </tbody>
         </table>
-        <Tip>Pour qu’un article alimente la section « Reportages », sa rubrique doit être exactement « Reportage ». La page d’accueil présente jusqu’à 12 articles ; les autres restent accessibles via « Toute l’actualité ».</Tip>
+        <Tip>La page d’accueil charge les 48 dernières publications. Les plus anciennes restent accessibles par « Toute l’actualité » et par leur rubrique.</Tip>
       </>
     ),
   },
@@ -257,8 +312,8 @@ Un paragraphe avec du **gras**, de l'*italique* et un [lien](https://exemple.com
     body: (
       <>
         <p>
-          L’onglet <strong>Contenu du site</strong> regroupe tous les textes fixes : bandeau du haut, titre de l’accueil, titres des rubriques,
-          cartes « Vie du média », section événements, bandeau contact, pied de page, adresse e-mail de la rédaction et liens Facebook, Instagram, YouTube.
+          L’onglet <strong>Contenu du site</strong> regroupe les textes fixes : slogan sous le logo, ville, description du site (affichée sur Google et dans les aperçus de partage),
+          titres des sections Agenda, Vidéos et Podcasts, bloc contact, pied de page, adresse e-mail de la rédaction et liens Facebook, Instagram, YouTube.
         </p>
         <ul>
           <li>Chaque champ affiche en <strong>grisé</strong> le texte par défaut. <strong>Laissez le champ vide</strong> pour le conserver.</li>
@@ -342,7 +397,7 @@ Un paragraphe avec du **gras**, de l'*italique* et un [lien](https://exemple.com
           <dt>Mon article est publié mais n’apparaît pas sur le site.</dt>
           <dd>Vérifiez le statut (« Publié », pas « Brouillon »), que la <strong>date de publication n’est pas dans le futur</strong>, puis rechargez le site. Pour qu’il apparaisse dans une section précise (Interviews, Reportages…), contrôlez sa rubrique.</dd>
           <dt>Une section de la page d’accueil a disparu.</dt>
-          <dd>Elle n’a plus de contenu : publiez un article de la rubrique correspondante ou un événement à venir.</dd>
+          <dd>Elle n’a plus de contenu : publiez dans la rubrique correspondante (ou un événement à venir pour l’Agenda).</dd>
           <dt>Le téléversement d’une image échoue.</dt>
           <dd>Contrôlez la taille (10 Mo maximum) et le format. Si le message évoque Cloudinary, contactez la personne qui gère l’hébergement : les identifiants Cloudinary sont peut-être absents ou incorrects.</dd>
           <dt>Le lien partagé sur WhatsApp n’affiche pas la bonne image.</dt>
@@ -351,6 +406,8 @@ Un paragraphe avec du **gras**, de l'*italique* et un [lien](https://exemple.com
           <dd>Seul l’enregistrement les conserve. Pensez à <K>Ctrl</K> + <K>S</K> régulièrement et à ne pas fermer l’onglet tant que le point orange est visible.</dd>
           <dt>J’ai supprimé un contenu par erreur.</dt>
           <dd>La suppression est définitive. À l’avenir, archivez plutôt que supprimer.</dd>
+          <dt>Ma vidéo ou mon podcast ne se lance pas.</dt>
+          <dd>Vérifiez l’aperçu du lecteur dans l’éditeur. Un lien YouTube doit être celui de la vidéo (pas d’une chaîne ni d’une liste de lecture). Pour un fichier, utilisez l’adresse directe se terminant par .mp4 ou .mp3, ou téléversez-le.</dd>
           <dt>Une erreur « Trop de tentatives » s’affiche.</dt>
           <dd>Des limites protègent le site contre les abus (par exemple 5 messages de contact par heure et par adresse). Patientez, puis réessayez.</dd>
         </dl>
@@ -359,7 +416,7 @@ Un paragraphe avec du **gras**, de l'*italique* et un [lien](https://exemple.com
   },
 ];
 
-export function Guide({ onNavigate }: { onNavigate?: (section: "dashboard" | "content" | "messages" | "site" | "admins") => void }) {
+export function Guide({ onNavigate }: { onNavigate?: (section: "dashboard" | "content" | "rubriques" | "messages" | "site" | "admins") => void }) {
   const [active, setActive] = useState(SECTIONS[0].id);
 
   useEffect(() => {
@@ -405,7 +462,8 @@ export function Guide({ onNavigate }: { onNavigate?: (section: "dashboard" | "co
             <ol>
               <li>Définissez votre <strong>mot de passe</strong> (bouton en bas du menu).</li>
               <li>Ouvrez <strong>Contenu du site</strong> pour vérifier les textes et les liens des réseaux sociaux.</li>
-              <li>Créez votre premier <strong>article</strong> en brouillon, avec une image.</li>
+              <li>Vérifiez les <strong>rubriques</strong> (onglet Rubriques) et créez celles dont vous avez besoin.</li>
+              <li>Créez votre première <strong>publication</strong> (texte, vidéo ou podcast) en brouillon, avec une image.</li>
               <li>Relisez-le dans l’onglet <strong>Aperçu</strong>, puis passez-le en <strong>Publié</strong>.</li>
               <li>Cliquez sur <strong>« Voir le média »</strong> pour constater le résultat.</li>
             </ol>

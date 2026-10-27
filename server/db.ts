@@ -1,8 +1,9 @@
-import { and, asc, desc, eq, gte, isNull, lte, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
   admins,
   articles,
+  categories,
   contactMessages,
   events,
   type InsertArticle,
@@ -13,6 +14,7 @@ import {
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { slugify } from "@shared/slug";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -151,7 +153,7 @@ export async function listPublishedContent() {
       .from(articles)
       .where(isLive())
       .orderBy(desc(articles.isFeatured), desc(articles.publishedAt))
-      .limit(30),
+      .limit(48),
     db
       .select()
       .from(events)
@@ -192,10 +194,114 @@ export async function getEventBySlug(slug: string) {
   return event;
 }
 
-export async function listArticles({ category, page, pageSize }: { category?: string; page: number; pageSize: number }) {
+const DEFAULT_CATEGORIES = ["Actualité", "Société", "Impact", "Interview", "Reportage", "Témoignage"];
+
+/** First run: create the default sections (plus any section already used by existing articles). */
+async function ensureCategories() {
+  const db = await getDb();
+  if (!db) return;
+  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(categories);
+  if ((row?.n ?? 0) > 0) return;
+  const used = await db.selectDistinct({ name: articles.category }).from(articles);
+  const names = Array.from(new Set([...DEFAULT_CATEGORIES, ...used.map((u) => u.name)]));
+  await db.insert(categories).values(names.map((name, i) => ({ name, slug: slugify(name), sortOrder: i }))).onConflictDoNothing();
+}
+
+const liveCount = sql<number>`(select count(*)::int from ${articles} where ${articles.category} = ${categories.name} and ${articles.status} = 'published' and ${articles.publishedAt} <= now())`;
+const totalCount = sql<number>`(select count(*)::int from ${articles} where ${articles.category} = ${categories.name})`;
+
+/** Public sections with the number of live articles (ordered as set in the back office). */
+export async function listCategories() {
+  const db = await getDb();
+  if (!db) return [];
+  await ensureCategories();
+  return db
+    .select({ id: categories.id, name: categories.name, slug: categories.slug, description: categories.description, sortOrder: categories.sortOrder, count: liveCount })
+    .from(categories)
+    .orderBy(asc(categories.sortOrder), asc(categories.id));
+}
+
+export async function listCategoriesAdmin() {
+  const db = await getDb();
+  if (!db) throw new Error("Base de données indisponible.");
+  await ensureCategories();
+  return db
+    .select({ id: categories.id, name: categories.name, slug: categories.slug, description: categories.description, sortOrder: categories.sortOrder, count: totalCount })
+    .from(categories)
+    .orderBy(asc(categories.sortOrder), asc(categories.id));
+}
+
+export async function getCategoryBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await ensureCategories();
+  const [row] = await db.select().from(categories).where(eq(categories.slug, slug)).limit(1);
+  return row;
+}
+
+export async function categoryExists(name: string) {
+  const db = await getDb();
+  if (!db) return false;
+  await ensureCategories();
+  const [row] = await db.select({ id: categories.id }).from(categories).where(eq(categories.name, name)).limit(1);
+  return Boolean(row);
+}
+
+export async function createCategory(name: string, description: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Base de données indisponible.");
+  await ensureCategories();
+  const slug = slugify(name);
+  if (!slug) throw new Error("Nom de rubrique invalide.");
+  const [max] = await db.select({ m: sql<number>`coalesce(max(${categories.sortOrder}), -1)::int` }).from(categories);
+  await db.insert(categories).values({ name, slug, description, sortOrder: (max?.m ?? -1) + 1 });
+}
+
+export async function updateCategory(id: number, name: string, description: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Base de données indisponible.");
+  const [current] = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
+  if (!current) throw new Error("Rubrique introuvable.");
+  const slug = slugify(name);
+  await db.update(categories).set({ name, slug, description }).where(eq(categories.id, id));
+  if (current.name !== name) await db.update(articles).set({ category: name }).where(eq(articles.category, current.name));
+}
+
+export async function moveCategory(id: number, direction: "up" | "down") {
+  const db = await getDb();
+  if (!db) throw new Error("Base de données indisponible.");
+  const rows = await db.select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.id));
+  const i = rows.findIndex((r) => r.id === id);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= rows.length) return;
+  const reordered = [...rows];
+  [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+  for (let k = 0; k < reordered.length; k++) {
+    if (reordered[k].sortOrder !== k) await db.update(categories).set({ sortOrder: k }).where(eq(categories.id, reordered[k].id));
+  }
+}
+
+export async function deleteCategory(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Base de données indisponible.");
+  const [current] = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
+  if (!current) return;
+  const [used] = await db.select({ n: sql<number>`count(*)::int` }).from(articles).where(eq(articles.category, current.name));
+  if ((used?.n ?? 0) > 0) throw new Error(`Cette rubrique contient ${used.n} publication${used.n > 1 ? "s" : ""} : déplacez-les ou supprimez-les d’abord.`);
+  await db.delete(categories).where(eq(categories.id, id));
+}
+
+export async function listArticles({ categorySlug, kind, page, pageSize }: { categorySlug?: string; kind?: string; page: number; pageSize: number }) {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
-  const where = category ? and(isLive(), eq(articles.category, category)) : isLive();
+  let name: string | undefined;
+  if (categorySlug) {
+    const category = await getCategoryBySlug(categorySlug);
+    if (!category) return { items: [], total: 0 };
+    name = category.name;
+  }
+  const filters = [isLive(), name ? eq(articles.category, name) : undefined, kind ? eq(articles.kind, kind) : undefined].filter(Boolean);
+  const where = and(...(filters as NonNullable<(typeof filters)[number]>[]));
   const [items, [count]] = await Promise.all([
     db.select().from(articles).where(where).orderBy(desc(articles.publishedAt)).limit(pageSize).offset((page - 1) * pageSize),
     db.select({ n: sql<number>`count(*)::int` }).from(articles).where(where),
@@ -203,15 +309,17 @@ export async function listArticles({ category, page, pageSize }: { category?: st
   return { items: items.map((item) => ({ ...item, body: "" })), total: count?.n ?? 0 };
 }
 
-export async function listCategories() {
+export async function searchArticles(query: string) {
   const db = await getDb();
   if (!db) return [];
-  return db
-    .select({ category: articles.category, count: sql<number>`count(*)::int` })
+  const pattern = `%${query.replace(/[\\%_]/g, "\\$&")}%`;
+  const rows = await db
+    .select()
     .from(articles)
-    .where(isLive())
-    .groupBy(articles.category)
-    .orderBy(desc(sql`count(*)`));
+    .where(and(isLive(), or(ilike(articles.title, pattern), ilike(articles.excerpt, pattern))))
+    .orderBy(desc(articles.publishedAt))
+    .limit(8);
+  return rows.map((row) => ({ ...row, body: "" }));
 }
 
 export async function listSitemapEntries() {
@@ -222,7 +330,7 @@ export async function listSitemapEntries() {
     db.select({ slug: events.slug, updatedAt: events.updatedAt }).from(events).where(eq(events.status, "published")),
     listCategories(),
   ]);
-  return { articles: a, events: e, categories: c.map((x) => x.category) };
+  return { articles: a, events: e, categories: c.filter((x) => x.count > 0).map((x) => x.slug) };
 }
 
 export async function submitContactMessage(input: { name: string; email: string; message: string }) {
@@ -292,6 +400,8 @@ export async function saveArticle(input: Omit<InsertArticle, "id" | "publishedAt
     excerpt: input.excerpt,
     body: input.body,
     imageUrl: input.imageUrl ?? null,
+    kind: input.kind ?? "text",
+    mediaUrl: input.mediaUrl ? input.mediaUrl : null,
     author: input.author ?? null,
     readMinutes: input.readMinutes,
     isFeatured: input.isFeatured,

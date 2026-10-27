@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, FileText, LoaderCircle, Plus, Send, Pencil } from "lucide-react";
 
-type Props = { onNavigate: (section: "content" | "messages" | "site" | "admins" | "guide", kind?: "articles" | "events") => void };
+type Props = { onNavigate: (section: "content" | "rubriques" | "messages" | "site" | "admins" | "guide", kind?: "articles" | "events") => void };
 
 const formatDate = (value: Date | string) =>
   new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(new Date(value));

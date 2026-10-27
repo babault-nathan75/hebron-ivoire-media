@@ -4,10 +4,10 @@ import { ArticleBody } from "@/components/site/ArticleBody";
 import { Bold, Heading2, Heading3, Image as ImageIcon, Italic, Link2, List, ListOrdered, LoaderCircle, Paperclip, Quote } from "lucide-react";
 import { toast } from "sonner";
 
-type Props = { label: string; value: string; onChange: (value: string) => void; rows?: number; placeholder?: string; footer?: React.ReactNode };
+type Props = { label: string; value: string; onChange: (value: string) => void; rows?: number; placeholder?: string; footer?: React.ReactNode; required?: boolean };
 
 /** Textarea with a formatting toolbar, media upload (image / audio / video) and a live preview. */
-export function RichTextField({ label, value, onChange, rows = 16, placeholder, footer }: Props) {
+export function RichTextField({ label, value, onChange, rows = 16, placeholder, footer, required = true }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const files = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"write" | "preview">("write");
@@ -79,7 +79,7 @@ export function RichTextField({ label, value, onChange, rows = 16, placeholder, 
           </div>
         </div>
         {tab === "write"
-          ? <textarea ref={ref} className="adm-body" required minLength={10} maxLength={100000} rows={rows} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+          ? <textarea ref={ref} className="adm-body" required={required} minLength={required ? 10 : undefined} maxLength={100000} rows={rows} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
           : <div className="rt-preview">{value.trim() ? <ArticleBody source={value} /> : <p className="adm-muted">Rien à prévisualiser pour l’instant.</p>}</div>}
         <input ref={files} type="file" accept="image/*,video/*,audio/*" hidden onChange={(e) => void upload(e.target.files?.[0])} />
       </div>

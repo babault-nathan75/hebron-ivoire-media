@@ -1,57 +1,72 @@
-import { useRef, useState } from "react";
-import { useStickyNav } from "@/lib/useStickyNav";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { SITE_DEFAULTS } from "@shared/siteSettings";
 import { trpc } from "@/lib/trpc";
-import { ArrowUpRight, Facebook, Instagram, LoaderCircle, Mail, MapPin, Menu, Search, Send, X, Youtube } from "lucide-react";
+import { useSiteText } from "@/lib/useSiteText";
+import { formatToday } from "@/lib/format";
+import { ArrowUpRight, Facebook, Instagram, LoaderCircle, Mail, MapPin, Search, Send, Youtube } from "lucide-react";
 import { toast } from "sonner";
+import { ADMIN_PATH } from "@shared/adminPath";
 import { BrandMark } from "./BrandMark";
+import { SearchDialog } from "./SearchDialog";
 
-export function useSiteText() {
-  const { data } = trpc.site.settings.useQuery(undefined, { staleTime: 30_000 });
-  return (key: string) => data?.[key] || SITE_DEFAULTS[key] || "";
-}
+export { useSiteText };
 
-/** Header used on every page except the home page (which has its own scroll-spy version). */
+/** Newspaper masthead: date strip, logo, then a section bar that stays pinned while the page scrolls. */
 export function SiteHeader() {
   const t = useSiteText();
   const [location] = useLocation();
-  const [open, setOpen] = useState(false);
-  const headerRef = useRef<HTMLElement>(null);
-  useStickyNav(headerRef);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { data: categories } = trpc.content.categories.useQuery(undefined, { staleTime: 60_000 });
+  const { data: content } = trpc.content.listPublished.useQuery(undefined, { staleTime: 30_000 });
+  const hasKind = (kind: string) => content?.articles.some((a) => a.kind === kind);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSearchOpen(true); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const links = [
     { label: "Accueil", href: "/" },
-    { label: "Actualités", href: "/actualites" },
-    ...(categories ?? []).slice(0, 4).map((c) => ({ label: c.category, href: `/rubrique/${encodeURIComponent(c.category)}` })),
-    { label: "Contact", href: "/#contact" },
+    ...(categories ?? []).filter((c) => c.count > 0).map((c) => ({ label: c.name, href: `/rubrique/${c.slug}` })),
+    ...(hasKind("video") ? [{ label: "Vidéos", href: "/videos" }] : []),
+    ...(hasKind("audio") ? [{ label: "Podcasts", href: "/podcasts" }] : []),
   ];
-  const active = (href: string) => decodeURIComponent(location) === decodeURIComponent(href);
+  const current = decodeURIComponent(location);
+
   return (
     <>
-      <div className="utility-bar">
-        <div className="container utility-inner">
-          <p><span className="live-dot" /> {t("utilityLine")}</p>
-          <div className="utility-right"><span>{t("city")}</span></div>
+      <div className="np-top">
+        <div className="container">
+          <span className="np-date">{formatToday()} · {t("city")}</span>
+          <span className="np-top-links">
+            <a href="/#contact">Contact</a>
+            <a href="#newsletter" onClick={(e) => { e.preventDefault(); document.getElementById("newsletter")?.scrollIntoView({ behavior: "smooth" }); }}>Newsletter</a>
+          </span>
         </div>
       </div>
-      <header ref={headerRef} className="site-header is-scrolled">
-        <div className="container header-main">
+      <header className="np-mast">
+        <div className="container">
           <BrandMark />
-          <div className="header-actions">
-            <Link className="header-cta" href="/actualites">Toute l’actualité <ArrowUpRight size={15} /></Link>
-            <button className="mobile-menu-trigger" onClick={() => setOpen(!open)} aria-label={open ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={open}>{open ? <X size={22} /> : <Menu size={22} />}</button>
+          <p className="np-motto" aria-label="Notre devise"><b className="m1">Éclairer</b><i>·</i><b className="m2">Transformer</b><i>·</i><b className="m3">Bâtir</b></p>
+          <div className="np-mast-actions">
+            <button className="np-search-btn" onClick={() => setSearchOpen(true)} aria-label="Rechercher"><Search size={17} /><span>Rechercher</span><kbd>Ctrl K</kbd></button>
           </div>
         </div>
-        <nav className={`primary-nav ${open ? "nav-open" : ""}`} aria-label="Navigation principale">
-          <div className="container nav-inner">
-            {links.map((l) => (l.href.includes("#")
-              ? <a key={l.label} href={l.href} onClick={() => setOpen(false)}>{l.label}</a>
-              : <Link key={l.label} href={l.href} className={active(l.href) ? "nav-current" : ""} onClick={() => setOpen(false)}>{l.label}</Link>))}
-            <Link className="nav-search" href="/actualites" aria-label="Rechercher"><Search size={18} /></Link>
-          </div>
-        </nav>
       </header>
+      <nav className="np-nav" aria-label="Rubriques">
+        <div className="container">
+          <ul>
+            {links.map((l) => (
+              <li key={l.href}><Link href={l.href} className={current === decodeURIComponent(l.href) ? "on" : ""}>{l.label}</Link></li>
+            ))}
+          </ul>
+          <button className="np-nav-search" onClick={() => setSearchOpen(true)} aria-label="Rechercher"><Search size={18} /></button>
+        </div>
+      </nav>
+      {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} />}
     </>
   );
 }
@@ -78,6 +93,8 @@ export function SiteFooter() {
   const t = useSiteText();
   const { data: content } = trpc.content.listPublished.useQuery(undefined, { staleTime: 30_000 });
   const { data: categories } = trpc.content.categories.useQuery(undefined, { staleTime: 60_000 });
+  const visible = (categories ?? []).filter((c) => c.count > 0);
+  const hasKind = (kind: string) => content?.articles.some((a) => a.kind === kind);
   const socials = [
     { label: "Facebook", href: t("facebookUrl"), icon: Facebook, className: "fb" },
     { label: "Instagram", href: t("instagramUrl"), icon: Instagram, className: "ig" },
@@ -85,7 +102,7 @@ export function SiteFooter() {
   ];
   return (
     <footer className="site-footer ft">
-      <div className="container ft-cta">
+      <div className="container ft-cta" id="newsletter">
         <div>
           <span className="ft-kicker">Restez informé</span>
           <h2>Les nouveaux récits, directement dans votre boîte e-mail.</h2>
@@ -108,29 +125,27 @@ export function SiteFooter() {
           <h3>Explorer</h3>
           <Link href="/">Accueil</Link>
           <Link href="/actualites">Toute l’actualité</Link>
-          {content?.events.length ? <a href="/#evenements">Événements</a> : null}
-          <a href="/#contact">Contact</a>
+          {hasKind("video") && <Link href="/videos">Vidéos</Link>}
+          {hasKind("audio") && <Link href="/podcasts">Podcasts</Link>}
+          {content?.events.length ? <a href="/#evenements">Agenda</a> : null}
         </nav>
 
         <nav className="ft-col" aria-label="Rubriques">
           <h3>Rubriques</h3>
-          {categories?.length
-            ? categories.slice(0, 6).map((c) => <Link key={c.category} href={`/rubrique/${encodeURIComponent(c.category)}`}>{c.category}</Link>)
-            : <span className="ft-muted">Bientôt</span>}
+          {visible.length ? visible.slice(0, 7).map((c) => <Link key={c.id} href={`/rubrique/${c.slug}`}>{c.name}</Link>) : <span className="ft-muted">Bientôt</span>}
         </nav>
 
         <div className="ft-col">
           <h3>Nous joindre</h3>
           <p className="ft-line"><MapPin size={15} /> {t("city")}</p>
           <a className="ft-line" href={`mailto:${t("contactEmail")}`}><Mail size={15} /> {t("contactEmail")}</a>
-          <a className="ft-link-cta" href="/#contact">Proposer un sujet <ArrowUpRight size={14} /></a>
+          <a className="ft-link-cta" href="/#contact">Contacter la rédaction <ArrowUpRight size={14} /></a>
         </div>
       </div>
 
       <div className="ft-bottom">
         <div className="container">
-          <span>© {new Date().getFullYear()} <a href="/admin" className="footer-admin-link">HÉBRON-IVOIRE.</a> TOUS DROITS RÉSERVÉS.</span>
-          <span className="ft-tagline">Un regard qui rassemble <i>·</i> Une parole qui inspire</span>
+          <span>© {new Date().getFullYear()} <a href={ADMIN_PATH} className="footer-admin-link">IMPACT-NATION.NET</a>. TOUS DROITS RÉSERVÉS.</span>
           <a href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Retour en haut ↑</a>
         </div>
       </div>

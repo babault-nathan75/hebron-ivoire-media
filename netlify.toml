@@ -57,13 +57,25 @@
   force = true
 
 [[redirects]]
+  from = "/videos"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/podcasts"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/actualites"
   to = "/.netlify/functions/server"
   status = 200
   force = true
 
 [[redirects]]
-  from = "/admin"
+  from = "/in-redaction"
   to = "/.netlify/functions/server"
   status = 200
   force = true

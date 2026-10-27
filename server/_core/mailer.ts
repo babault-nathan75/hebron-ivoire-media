@@ -1,9 +1,10 @@
 import nodemailer from "nodemailer";
+import { BRAND } from "@shared/brand";
 import { ENV } from "./env";
 
 export const mailConfigured = () => Boolean(ENV.smtpHost && ENV.smtpUser && ENV.smtpPassword);
 
-export async function sendMail(opts: { to: string; subject: string; html: string; replyTo?: string }) {
+export async function sendMail(opts: { to: string; subject: string; html: string; text?: string; replyTo?: string }) {
   const transporter = nodemailer.createTransport({
     host: ENV.smtpHost,
     port: ENV.smtpPort,
@@ -11,10 +12,11 @@ export async function sendMail(opts: { to: string; subject: string; html: string
     auth: { user: ENV.smtpUser, pass: ENV.smtpPassword },
   });
   await transporter.sendMail({
-    from: `"Hébron-Ivoire Média" <${ENV.emailFrom}>`,
+    from: `"${BRAND.name}" <${ENV.emailFrom}>`,
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
+    text: opts.text,
     replyTo: opts.replyTo,
   });
 }

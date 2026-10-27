@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { ADMIN_PATH } from "@shared/adminPath";
 import Admin from "./pages/Admin";
 import Home from "./pages/Home";
 import ArticlePage from "./pages/ArticlePage";
@@ -17,9 +18,11 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/article/:slug"} component={ArticlePage} />
       <Route path={"/evenement/:slug"} component={EventPage} />
-      <Route path={"/rubrique/:name"} component={ArticlesPage} />
+      <Route path={"/rubrique/:slug"} component={ArticlesPage} />
       <Route path={"/actualites"} component={ArticlesPage} />
-      <Route path={"/admin"} component={Admin} />
+      <Route path={"/videos"} component={ArticlesPage} />
+      <Route path={"/podcasts"} component={ArticlesPage} />
+      <Route path={ADMIN_PATH} component={Admin} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

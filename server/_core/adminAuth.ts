@@ -3,7 +3,9 @@ import { promisify } from "node:util";
 import { and, desc, eq, gt } from "drizzle-orm";
 import { adminOtps } from "../../drizzle/schema";
 import * as db from "../db";
+import { BRAND } from "@shared/brand";
 import { ENV } from "./env";
+import { otpEmail } from "./emailTemplates";
 import { mailConfigured, sendMail } from "./mailer";
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
@@ -38,11 +40,8 @@ async function sendOtpEmail(email: string, code: string) {
     console.log(`[OTP] SMTP non configuré — code de connexion pour ${email} : ${code}`);
     return;
   }
-  await sendMail({
-    to: email,
-    subject: `Votre code de connexion : ${code}`,
-    html: `<p>Votre code de connexion à l'espace rédaction :</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">${code}</p><p>Il expire dans 10 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.</p>`,
-  });
+  const mail = otpEmail({ code, minutes: OTP_TTL_MS / 60_000, siteName: BRAND.name, siteUrl: ENV.siteUrl || undefined });
+  await sendMail({ to: email, ...mail });
 }
 
 /** Resolves silently for non-admin emails so the endpoint doesn't reveal who is an admin. */

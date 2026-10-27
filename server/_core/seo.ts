@@ -1,6 +1,8 @@
 import type { Express, Request } from "express";
 import { SITE_DEFAULTS } from "@shared/siteSettings";
-import { getArticleBySlug, getEventBySlug, getSiteSettings, listSitemapEntries } from "../db";
+import { getArticleBySlug, getCategoryBySlug, getEventBySlug, getSiteSettings, listSitemapEntries } from "../db";
+import { ADMIN_PATH } from "@shared/adminPath";
+import { BRAND } from "@shared/brand";
 import { ENV } from "./env";
 import { escapeHtml } from "./mailer";
 
@@ -19,10 +21,12 @@ async function metaFor(req: Request): Promise<Meta> {
   const base = baseUrl(req);
   const path = req.originalUrl.split("?")[0];
   const settings = await getSiteSettings().catch(() => ({} as Record<string, string>));
-  const siteName = "Hébron-Ivoire";
+  const siteName = BRAND.name;
+  const defaultImage = `${base}/brand/og-default.jpg`;
   const home: Meta = {
-    title: `${siteName} — Le média qui inspire`,
-    description: settings.heroIntro || SITE_DEFAULTS.heroIntro,
+    title: `${BRAND.name}.net — ${BRAND.tagline}`,
+    image: defaultImage,
+    description: settings.siteDescription || SITE_DEFAULTS.siteDescription,
     url: `${base}/`,
     type: "website",
   };
@@ -37,7 +41,7 @@ async function metaFor(req: Request): Promise<Meta> {
       return {
         title: `${a.title} — ${siteName}`,
         description: strip(a.excerpt),
-        image,
+        image: image ?? defaultImage,
         url,
         type: "article",
         jsonLd: {
@@ -64,9 +68,12 @@ async function metaFor(req: Request): Promise<Meta> {
   }
   m = /^\/rubrique\/([^/]+)\/?$/.exec(path);
   if (m) {
-    const name = decodeURIComponent(m[1]);
-    return { title: `${name} — ${siteName}`, description: `Tous les articles de la rubrique ${name} sur ${siteName}.`, url: `${base}/rubrique/${encodeURIComponent(name)}`, type: "website" };
+    const slug = decodeURIComponent(m[1]);
+    const c = await getCategoryBySlug(slug).catch(() => undefined);
+    if (c) return { title: `${c.name} — ${siteName}`, description: c.description || `Tous les contenus de la rubrique ${c.name} sur ${siteName}.`, url: `${base}/rubrique/${c.slug}`, type: "website" };
   }
+  if (path === "/videos") return { title: `Vidéos — ${siteName}`, description: `Reportages, interviews et émissions en vidéo sur ${siteName}.`, url: `${base}/videos`, type: "website" };
+  if (path === "/podcasts") return { title: `Podcasts — ${siteName}`, description: `Écoutez les podcasts et émissions audio de ${siteName}.`, url: `${base}/podcasts`, type: "website" };
   if (path.startsWith("/actualites")) {
     return { title: `Toute l’actualité — ${siteName}`, description: home.description, url: `${base}/actualites`, type: "website" };
   }
@@ -75,13 +82,13 @@ async function metaFor(req: Request): Promise<Meta> {
 
 /** Replace the static <title>/description of index.html with per-page tags (what crawlers and link previews read). */
 export async function injectSeo(html: string, req: Request): Promise<string> {
-  if (req.originalUrl.startsWith("/admin")) return html.replace("<head>", '<head>\n    <meta name="robots" content="noindex,nofollow" />');
+  if (req.originalUrl.startsWith(ADMIN_PATH)) return html.replace("<head>", '<head>\n    <meta name="robots" content="noindex,nofollow" />');
   const meta = await metaFor(req);
   const tags = [
     `<title>${escapeHtml(meta.title)}</title>`,
     `<meta name="description" content="${escapeHtml(meta.description)}" />`,
     `<link rel="canonical" href="${escapeHtml(meta.url)}" />`,
-    `<meta property="og:site_name" content="Hébron-Ivoire" />`,
+    `<meta property="og:site_name" content="${BRAND.name}" />`,
     `<meta property="og:locale" content="fr_FR" />`,
     `<meta property="og:type" content="${meta.type}" />`,
     `<meta property="og:title" content="${escapeHtml(meta.title)}" />`,
@@ -102,7 +109,7 @@ export async function injectSeo(html: string, req: Request): Promise<string> {
 
 export function registerSeoRoutes(app: Express) {
   app.get("/robots.txt", (req, res) => {
-    res.type("text/plain").send(`User-agent: *\nDisallow: /admin\nDisallow: /api/\n\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
+    res.type("text/plain").send(`User-agent: *\nDisallow: /api/\n\nSitemap: ${baseUrl(req)}/sitemap.xml\n`);
   });
 
   app.get("/sitemap.xml", async (req, res) => {
@@ -114,7 +121,9 @@ export function registerSeoRoutes(app: Express) {
       '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
       url(`${base}/`),
       url(`${base}/actualites`),
-      ...categories.map((c) => url(`${base}/rubrique/${encodeURIComponent(c)}`)),
+      url(`${base}/videos`),
+      url(`${base}/podcasts`),
+      ...categories.map((slug) => url(`${base}/rubrique/${slug}`)),
       ...articles.map((a) => url(`${base}/article/${a.slug}`, a.updatedAt)),
       ...events.map((e) => url(`${base}/evenement/${e.slug}`, e.updatedAt)),
       "</urlset>",

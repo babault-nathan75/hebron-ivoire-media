@@ -12,10 +12,12 @@ import {
 } from "./_core/adminAuth";
 import { sdk } from "./_core/sdk";
 import * as dbm from "./db";
+import { LOGIN_BY_EMAIL, LOGIN_BY_IP, OTP_REQUEST_BY_IP, assertNotLocked, clearFailures, clientIp, registerFailure } from "./_core/rateLimit";
 import { createHash } from "node:crypto";
 import { escapeHtml, mailConfigured, sendMail } from "./_core/mailer";
 import { ENV } from "./_core/env";
 import { SITE_FIELDS } from "@shared/siteSettings";
+import { ARTICLE_KINDS } from "@shared/slug";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -42,13 +44,18 @@ const articleSchema = z.object({
   title: z.string().trim().min(3).max(300),
   category: z.string().trim().min(2).max(100),
   excerpt: z.string().trim().min(10).max(700),
-  body: z.string().trim().min(10).max(100000),
+  body: z.string().trim().max(100000),
+  kind: z.enum(ARTICLE_KINDS).default("text"),
+  mediaUrl: z.string().trim().max(2000).optional().or(z.literal("")),
   imageUrl: z.string().trim().max(2000).optional().or(z.literal("")),
   author: z.string().trim().max(160).optional().or(z.literal("")),
   readMinutes: z.number().int().min(1).max(180),
   isFeatured: z.boolean(),
   status: statusSchema,
   publishAt: z.string().datetime().optional().nullable(),
+}).superRefine((value, ctx) => {
+  if (value.kind === "text" && value.body.length < 10) ctx.addIssue({ code: "custom", path: ["body"], message: "Le texte de l’article est trop court (10 caractères minimum)." });
+  if (value.kind !== "text" && !value.mediaUrl) ctx.addIssue({ code: "custom", path: ["mediaUrl"], message: "Ajoutez la vidéo ou l’audio (fichier ou lien)." });
 });
 
 const eventSchema = z.object({
@@ -101,16 +108,27 @@ export const appRouter = router({
       .input(z.object({ email: z.string().email(), password: z.string().min(1).max(200) }))
       .mutation(async ({ ctx, input }) => {
         const email = normalizeEmail(input.email);
+        const ip = clientIp(ctx.req);
+        const emailKey = `pw:${email}`;
+        const ipKey = `ip:${ip}`;
+        await assertNotLocked([emailKey, ipKey]);
         const user = (await dbm.isAdminEmail(email)) ? await dbm.getUserByOpenId(adminOpenId(email)) : undefined;
         // Hash check runs even for unknown users to keep timing uniform.
         const ok = await verifyPassword(input.password, user?.passwordHash);
-        if (!user || !ok) throw new TRPCError({ code: "UNAUTHORIZED", message: "E-mail ou mot de passe incorrect." });
+        if (!user || !ok) {
+          await Promise.all([registerFailure(emailKey, LOGIN_BY_EMAIL), registerFailure(ipKey, LOGIN_BY_IP)]);
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "E-mail ou mot de passe incorrect." });
+        }
+        await clearFailures(emailKey);
         await startSession(ctx, user.openId, email);
         return { success: true } as const;
       }),
     requestOtp: publicProcedure
       .input(z.object({ email: z.string().email() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const ipKey = `otpreq:${clientIp(ctx.req)}`;
+        await assertNotLocked([ipKey]);
+        await registerFailure(ipKey, OTP_REQUEST_BY_IP); // every request counts: 10 per hour per IP
         try {
           await requestOtp(input.email);
         } catch (error) {
@@ -122,11 +140,18 @@ export const appRouter = router({
     verifyOtp: publicProcedure
       .input(z.object({ email: z.string().email(), code: z.string().regex(/^\d{6}$/) }))
       .mutation(async ({ ctx, input }) => {
+        const email = normalizeEmail(input.email);
+        const ip = clientIp(ctx.req);
+        const emailKey = `otp:${email}`;
+        const ipKey = `ip:${ip}`;
+        await assertNotLocked([emailKey, ipKey]);
         if (!(await consumeOtp(input.email, input.code))) {
+          await Promise.all([registerFailure(emailKey, LOGIN_BY_EMAIL), registerFailure(ipKey, LOGIN_BY_IP)]);
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Code invalide ou expiré." });
         }
+        await clearFailures(emailKey);
         const openId = await ensureAdminUser(input.email);
-        await startSession(ctx, openId, normalizeEmail(input.email));
+        await startSession(ctx, openId, email);
         return { success: true } as const;
       }),
     setPassword: protectedProcedure
@@ -148,7 +173,7 @@ export const appRouter = router({
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Cloudinary n’est pas configuré (CLOUDINARY_* dans .env)." });
       }
       const timestamp = Math.floor(Date.now() / 1000);
-      const folder = "hebron-ivoire";
+      const folder = "impact-nation";
       const signature = createHash("sha1")
         .update(`folder=${folder}&timestamp=${timestamp}${ENV.cloudinaryApiSecret}`)
         .digest("hex");
@@ -197,6 +222,26 @@ export const appRouter = router({
         return { success: true } as const;
       }),
   }),
+  categories: router({
+    list: adminProcedure.query(() => dbm.listCategoriesAdmin()),
+    create: adminProcedure
+      .input(z.object({ name: z.string().trim().min(2).max(100), description: z.string().trim().max(300).default("") }))
+      .mutation(async ({ input }) => {
+        try { await dbm.createCategory(input.name, input.description); } catch { throw new TRPCError({ code: "BAD_REQUEST", message: "Une rubrique de ce nom existe déjà." }); }
+        return { success: true } as const;
+      }),
+    update: adminProcedure
+      .input(idSchema.extend({ name: z.string().trim().min(2).max(100), description: z.string().trim().max(300).default("") }))
+      .mutation(async ({ input }) => {
+        try { await dbm.updateCategory(input.id, input.name, input.description); } catch { throw new TRPCError({ code: "BAD_REQUEST", message: "Impossible d’enregistrer : ce nom est peut-être déjà utilisé." }); }
+        return { success: true } as const;
+      }),
+    move: adminProcedure.input(idSchema.extend({ direction: z.enum(["up", "down"]) })).mutation(async ({ input }) => { await dbm.moveCategory(input.id, input.direction); return { success: true } as const; }),
+    remove: adminProcedure.input(idSchema).mutation(async ({ input }) => {
+      try { await dbm.deleteCategory(input.id); } catch (e) { throw new TRPCError({ code: "BAD_REQUEST", message: e instanceof Error ? e.message : "Suppression impossible." }); }
+      return { success: true } as const;
+    }),
+  }),
   contact: router({
     send: publicProcedure
       .input(z.object({
@@ -238,15 +283,24 @@ export const appRouter = router({
     article: publicProcedure.input(z.object({ slug: z.string().max(191) })).query(({ input }) => dbm.getArticleBySlug(input.slug)),
     event: publicProcedure.input(z.object({ slug: z.string().max(191) })).query(({ input }) => dbm.getEventBySlug(input.slug)),
     list: publicProcedure
-      .input(z.object({ category: z.string().max(100).optional(), page: z.number().int().min(1).max(500).default(1) }))
-      .query(({ input }) => dbm.listArticles({ category: input.category, page: input.page, pageSize: 9 })),
+      .input(z.object({ category: z.string().max(120).optional(), kind: z.enum(ARTICLE_KINDS).optional(), page: z.number().int().min(1).max(500).default(1) }))
+      .query(({ input }) => dbm.listArticles({ categorySlug: input.category, kind: input.kind, page: input.page, pageSize: 9 })),
     categories: publicProcedure.query(() => dbm.listCategories()),
+    search: publicProcedure.input(z.object({ q: z.string().trim().min(2).max(80) })).query(({ input }) => dbm.searchArticles(input.q)),
+    rubrique: publicProcedure.input(z.object({ slug: z.string().max(120) })).query(async ({ input }) => {
+      const c = await dbm.getCategoryBySlug(input.slug);
+      return c ? { name: c.name, slug: c.slug, description: c.description } : null;
+    }),
     listPublished: publicProcedure.query(() => listPublishedContent()),
     editorialList: adminProcedure.query(() => editorialList()),
     saveArticle: adminProcedure.input(articleSchema).mutation(async ({ input }) => {
       try {
+        if (!(await dbm.categoryExists(input.category))) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Cette rubrique n’existe pas. Créez-la d’abord dans l’onglet Rubriques." });
+        }
         return await saveArticle({ ...input, publishAt: input.publishAt ? new Date(input.publishAt) : null });
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         console.error("[Editorial] Failed to save article:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

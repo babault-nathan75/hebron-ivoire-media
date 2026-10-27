@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import AdminLogin from "@/components/AdminLogin";
 import { AdminsPanel, SiteSettingsPanel } from "@/components/AdminPanels";
@@ -6,12 +6,14 @@ import { ContentManager, type Kind } from "@/components/admin/ContentManager";
 import { Dashboard } from "@/components/admin/Dashboard";
 import { Guide } from "@/components/admin/Guide";
 import { MessagesPanel } from "@/components/admin/MessagesPanel";
+import { RubriquesPanel } from "@/components/admin/RubriquesPanel";
 import { trpc } from "@/lib/trpc";
 import {
   ArrowLeft,
   ArrowUpRight,
   BookOpen,
   Sparkles,
+  Tags,
   Eye,
   EyeOff,
   Inbox,
@@ -28,11 +30,12 @@ import {
 import { toast } from "sonner";
 import { Link } from "wouter";
 
-type Section = "dashboard" | "content" | "messages" | "site" | "admins" | "guide";
+type Section = "dashboard" | "content" | "rubriques" | "messages" | "site" | "admins" | "guide";
 
 const NAV: { id: Section; label: string; icon: typeof FileText }[] = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { id: "content", label: "Publications", icon: FileText },
+  { id: "rubriques", label: "Rubriques", icon: Tags },
   { id: "messages", label: "Messages", icon: Inbox },
   { id: "site", label: "Contenu du site", icon: SlidersHorizontal },
   { id: "admins", label: "Administrateurs", icon: ShieldCheck },
@@ -40,15 +43,22 @@ const NAV: { id: Section; label: string; icon: typeof FileText }[] = [
 ];
 
 function WelcomeDialog({ name, onGuide, onClose }: { name: string; onGuide: () => void; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
   const steps = [
-    ["Publications", "Écrivez des articles et créez des événements, en brouillon ou publiés."],
+    ["Publications", "Articles, vidéos et podcasts, ainsi que les événements, en brouillon ou publiés."],
+    ["Rubriques", "Créez et ordonnez les sections du journal (Société, Sport, Économie…)."],
     ["Contenu du site", "Modifiez les textes fixes et les liens des réseaux sociaux."],
     ["Messages", "Lisez les messages des visiteurs et la liste des abonnés."],
     ["Administrateurs", "Invitez ou retirez des membres de l’équipe."],
   ];
   return (
-    <div className="adm-modal" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div className="adm-modal" role="dialog" aria-modal="true" aria-labelledby="welcome-title" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="adm-card adm-modal-card adm-welcome">
+        <button type="button" className="adm-icon adm-welcome-close" onClick={onClose} aria-label="Fermer"><X size={16} /></button>
         <span className="adm-welcome-icon"><Sparkles size={22} /></span>
         <h2 id="welcome-title">Bienvenue{name ? `, ${name}` : ""} !</h2>
         <p>Voici votre espace rédaction. En un coup d’œil, voici à quoi sert chaque section :</p>
@@ -101,6 +111,8 @@ export default function Admin() {
   const utils = trpc.useUtils();
   const onboarding = trpc.admins.onboarding.useQuery(undefined, { enabled: user?.role === "admin", retry: false });
   const completeOnboarding = trpc.admins.completeOnboarding.useMutation({ onSuccess: () => utils.admins.onboarding.invalidate() });
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+  const closeWelcome = useCallback(() => { setWelcomeDismissed(true); completeOnboarding.mutate(); }, [completeOnboarding]);
   const unread = trpc.contact.unread.useQuery(undefined, { enabled: user?.role === "admin", refetchInterval: 60_000 });
 
   if (loading) return <div className="editor-loading"><LoaderCircle className="spin" />Chargement de l’espace rédaction…</div>;
@@ -137,7 +149,7 @@ export default function Admin() {
   return (
     <div className="adm-shell">
       <aside className="adm-sidebar">
-        <Link className="adm-brand" href="/"><span><Newspaper size={18} /></span><strong>HÉBRON · IVOIRE<small>Espace rédaction</small></strong></Link>
+        <Link className="adm-brand" href="/"><img src="/brand/logo-emblem.png" alt="" /><strong><span><b>Impact</b><i>-nation</i><u>.net</u></span><small>Espace rédaction</small></strong></Link>
         <nav aria-label="Navigation de l’espace rédaction">
           {NAV.map(({ id, label, icon: Icon }) => (
             <button key={id} className={section === id ? "on" : ""} onClick={() => go(id)}><Icon size={17} /><span>{label}</span>{id === "messages" && (unread.data ?? 0) > 0 && <b className="adm-badge">{unread.data}</b>}</button>
@@ -160,17 +172,18 @@ export default function Admin() {
         {section === "dashboard" && <Dashboard onNavigate={go} />}
         {section === "guide" && <Guide onNavigate={go} />}
         {section === "content" && <ContentManager kind={kind} onKindChange={setKind} />}
+        {section === "rubriques" && <RubriquesPanel />}
         {section === "messages" && <MessagesPanel />}
         {section === "site" && <SiteSettingsPanel />}
         {section === "admins" && <AdminsPanel currentEmail={user.email} />}
       </main>
 
       {passwordOpen && <PasswordDialog onClose={() => setPasswordOpen(false)} />}
-      {onboarding.data && !onboarding.data.seen && !completeOnboarding.isPending && (
+      {onboarding.data && !onboarding.data.seen && !welcomeDismissed && (
         <WelcomeDialog
           name={user.name && user.name !== user.email ? user.name : ""}
-          onClose={() => completeOnboarding.mutate()}
-          onGuide={() => { completeOnboarding.mutate(); setSection("guide"); }}
+          onClose={closeWelcome}
+          onGuide={() => { closeWelcome(); setSection("guide"); }}
         />
       )}
     </div>

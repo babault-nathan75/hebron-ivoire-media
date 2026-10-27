@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { ImageField } from "@/components/ImageField";
 import { RichTextField } from "@/components/admin/RichTextField";
+import { MediaField } from "@/components/admin/MediaField";
+import { KIND_LABEL, type ArticleKind } from "@shared/slug";
 import {
   Archive,
   ArrowLeft,
@@ -23,13 +25,13 @@ import { toast } from "sonner";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../../../server/routers";
 
-export const categories = ["Actualité", "Interview", "Reportage", "Témoignage", "Vie de foi", "Vie de Hébron-Ivoire"];
 export type Status = "draft" | "published" | "archived";
 export type Kind = "articles" | "events";
 
 type ArticleForm = {
   id?: number; slug: string; title: string; category: string; excerpt: string; body: string;
   imageUrl: string; author: string; readMinutes: number; isFeatured: boolean; status: Status; publishAt: string;
+  kind: ArticleKind; mediaUrl: string;
 };
 type EventForm = {
   id?: number; slug: string; title: string; excerpt: string; details: string; imageUrl: string;
@@ -45,7 +47,7 @@ const slugify = (value: string) =>
   value.trim().toLocaleLowerCase("fr").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 191);
 const readMinutes = (text: string) => Math.max(1, Math.round(text.trim().split(/\s+/).filter(Boolean).length / 200));
 
-const emptyArticle = (): ArticleForm => ({ slug: "", title: "", category: categories[0], excerpt: "", body: "", imageUrl: "", author: "", readMinutes: 1, isFeatured: false, status: "draft", publishAt: "" });
+const emptyArticle = (category = "", kind: ArticleKind = "text"): ArticleForm => ({ kind, mediaUrl: "", slug: "", title: "", category, excerpt: "", body: "", imageUrl: "", author: "", readMinutes: 1, isFeatured: false, status: "draft", publishAt: "" });
 const emptyEvent = (): EventForm => ({ slug: "", title: "", excerpt: "", details: "", imageUrl: "", location: "Abidjan, Côte d’Ivoire", startsAt: toLocal(new Date()), endsAt: "", status: "draft" });
 
 function useInvalidate() {
@@ -68,6 +70,7 @@ function useEditorShortcuts(dirty: boolean, save: () => void) {
 
 export function ContentManager({ kind, onKindChange }: { kind: Kind; onKindChange: (k: Kind) => void }) {
   const query = trpc.content.editorialList.useQuery(undefined, { retry: false });
+  const rubriques = trpc.categories.list.useQuery();
   const invalidate = useInvalidate();
   const [editing, setEditing] = useState<{ article?: ArticleForm; event?: EventForm } | null>(null);
   const [search, setSearch] = useState("");
@@ -91,7 +94,7 @@ export function ContentManager({ kind, onKindChange }: { kind: Kind; onKindChang
   if (editing?.article) return <ArticleEditor initial={editing.article} onClose={() => setEditing(null)} />;
   if (editing?.event) return <EventEditor initial={editing.event} onClose={() => setEditing(null)} />;
 
-  const create = () => setEditing(kind === "articles" ? { article: emptyArticle() } : { event: emptyEvent() });
+  const create = () => setEditing(kind === "articles" ? { article: emptyArticle(rubriques.data?.[0]?.name ?? "") } : { event: emptyEvent() });
 
   return (
     <div className="adm-stack">
@@ -100,7 +103,7 @@ export function ContentManager({ kind, onKindChange }: { kind: Kind; onKindChang
           <h1>Publications</h1>
           <p>Créez, publiez et organisez les articles et les événements du média.</p>
         </div>
-        <button className="adm-btn adm-btn-primary" onClick={create}><Plus size={16} /> {kind === "articles" ? "Nouvel article" : "Nouvel événement"}</button>
+        <button className="adm-btn adm-btn-primary" onClick={create}><Plus size={16} /> {kind === "articles" ? "Nouvelle publication" : "Nouvel événement"}</button>
       </div>
 
       <div className="adm-card adm-list-card">
@@ -139,7 +142,7 @@ export function ContentManager({ kind, onKindChange }: { kind: Kind; onKindChang
                 <div className="adm-row-main">
                   <div className="adm-meta">
                     <span className={`adm-pill s-${item.status}`}>{item.status === "published" && "publishedAt" in item && item.publishedAt && new Date(item.publishedAt) > new Date() ? `Programmé · ${formatDate(item.publishedAt)}` : statusLabel[item.status]}</span>
-                    {"category" in item && <span>{item.category}</span>}
+                    {"kind" in item && item.kind !== "text" && <span className="adm-kind">{KIND_LABEL[item.kind as ArticleKind]}</span>}{"category" in item && <span>{item.category}</span>}
                     {"isFeatured" in item && item.isFeatured && <span className="adm-star"><Star size={11} /> À la une</span>}
                     {"location" in item && <span><MapPin size={11} /> {item.location}</span>}
                   </div>
@@ -172,7 +175,7 @@ export function ContentManager({ kind, onKindChange }: { kind: Kind; onKindChang
 type Editorial = inferRouterOutputs<AppRouter>["content"]["editorialList"];
 type ArticleRow = Editorial["articles"][number];
 type EventRow = Editorial["events"][number];
-const articleToForm = (a: ArticleRow): ArticleForm => ({ id: a.id, slug: a.slug, title: a.title, category: a.category, excerpt: a.excerpt, body: a.body, imageUrl: a.imageUrl ?? "", author: a.author ?? "", readMinutes: a.readMinutes, isFeatured: a.isFeatured, status: a.status, publishAt: toLocal(a.publishedAt) });
+const articleToForm = (a: ArticleRow): ArticleForm => ({ id: a.id, slug: a.slug, title: a.title, category: a.category, excerpt: a.excerpt, body: a.body, imageUrl: a.imageUrl ?? "", author: a.author ?? "", readMinutes: a.readMinutes, isFeatured: a.isFeatured, status: a.status, publishAt: toLocal(a.publishedAt), kind: (a.kind as ArticleKind) ?? "text", mediaUrl: a.mediaUrl ?? "" });
 const eventToForm = (e: EventRow): EventForm => ({ id: e.id, slug: e.slug, title: e.title, excerpt: e.excerpt, details: e.details, imageUrl: e.imageUrl ?? "", location: e.location, startsAt: toLocal(e.startsAt), endsAt: toLocal(e.endsAt), status: e.status });
 
 function EditorShell({ title, backLabel, dirty, saving, onBack, onSave, side, children }: {
@@ -206,6 +209,7 @@ const StatusPicker = ({ value, onChange }: { value: Status; onChange: (s: Status
 
 function ArticleEditor({ initial, onClose }: { initial: ArticleForm; onClose: () => void }) {
   const invalidate = useInvalidate();
+  const rubriques = trpc.categories.list.useQuery();
   const [form, setForm] = useState(initial);
   const [saved, setSaved] = useState(initial);
   const dirty = JSON.stringify(form) !== JSON.stringify(saved);
@@ -222,32 +226,45 @@ function ArticleEditor({ initial, onClose }: { initial: ArticleForm; onClose: ()
   const submit = () => {
     const when = form.publishAt ? new Date(form.publishAt) : null;
     if (when && Number.isNaN(when.getTime())) return void toast.error("Vérifiez la date de publication.");
+    if (form.kind !== "text" && !form.mediaUrl) return void toast.error(form.kind === "video" ? "Ajoutez la vidéo (fichier ou lien YouTube)." : "Ajoutez le fichier audio du podcast.");
+    if (!form.category) return void toast.error("Choisissez une rubrique.");
     save.mutate({ ...form, id: form.id, publishAt: when ? when.toISOString() : null });
   };
   useEditorShortcuts(dirty, submit);
   const set = <K extends keyof ArticleForm>(k: K, v: ArticleForm[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const isMedia = form.kind !== "text";
+  const names = (rubriques.data ?? []).map((r) => r.name);
+  if (form.category && rubriques.data && !names.includes(form.category)) names.push(form.category);
+  if (!form.category && names[0]) setTimeout(() => set("category", names[0]), 0);
 
   return (
-    <EditorShell title={form.id ? "Modifier l’article" : "Nouvel article"} backLabel="Articles" dirty={dirty} saving={save.isPending} onBack={onClose} onSave={submit}
+    <EditorShell title={form.id ? `Modifier : ${KIND_LABEL[form.kind].toLowerCase()}` : `Nouveau : ${KIND_LABEL[form.kind].toLowerCase()}`} backLabel="Publications" dirty={dirty} saving={save.isPending} onBack={onClose} onSave={submit}
       side={<>
         <div className="adm-card adm-form">
           <StatusPicker value={form.status} onChange={(s) => set("status", s)} />
           {form.status === "published" && (
             <label className="adm-field"><span>Date de publication</span><input type="datetime-local" value={form.publishAt} onChange={(e) => set("publishAt", e.target.value)} /><small>{form.publishAt && new Date(form.publishAt) > new Date() ? "Programmé : l’article apparaîtra à cette date." : "Laissez vide pour publier immédiatement."}</small></label>
           )}
-          <label className="adm-field"><span>Rubrique</span><select value={form.category} onChange={(e) => set("category", e.target.value)}>{categories.map((c) => <option key={c}>{c}</option>)}</select></label>
+          <label className="adm-field"><span>Rubrique</span><select value={form.category} onChange={(e) => set("category", e.target.value)}>{names.map((n) => <option key={n}>{n}</option>)}</select><small>Pour ajouter une rubrique : onglet « Rubriques ».</small></label>
           <label className="adm-check"><input type="checkbox" checked={form.isFeatured} onChange={(e) => set("isFeatured", e.target.checked)} /><Star size={14} /> Mettre à la une</label>
         </div>
         <div className="adm-card adm-form"><ImageField value={form.imageUrl} onChange={(u) => set("imageUrl", u)} /></div>
         <div className="adm-card adm-form">
           <label className="adm-field"><span>Auteur / signature</span><input maxLength={160} value={form.author} onChange={(e) => set("author", e.target.value)} placeholder="Nom de l’auteur" /></label>
           <label className="adm-field"><span>Adresse (slug)</span><input required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={191} value={form.slug} onChange={(e) => set("slug", slugify(e.target.value))} /><small>Générée à partir du titre.</small></label>
-          <label className="adm-field"><span>Temps de lecture (min)</span><input type="number" min={1} max={180} value={form.readMinutes} onChange={(e) => set("readMinutes", Number(e.target.value))} /></label>
+          <label className="adm-field"><span>{isMedia ? "Durée (minutes)" : "Temps de lecture (min)"}</span><input type="number" min={1} max={180} value={form.readMinutes} onChange={(e) => set("readMinutes", Number(e.target.value))} /></label>
         </div>
       </>}>
+      <div className="adm-field">
+        <span>Type de publication</span>
+        <div className="adm-seg adm-seg-full">
+          {(["text", "video", "audio"] as const).map((k) => <button type="button" key={k} className={form.kind === k ? "on" : ""} onClick={() => set("kind", k)}>{k === "text" ? "Texte" : k === "video" ? "Vidéo" : "Podcast"}</button>)}
+        </div>
+      </div>
+      {isMedia && <MediaField kind={form.kind as "video" | "audio"} value={form.mediaUrl} poster={form.imageUrl || undefined} onChange={(url) => set("mediaUrl", url)} />}
       <label className="adm-field adm-title"><span>Titre</span><input required minLength={3} maxLength={300} value={form.title} placeholder="Le titre de votre récit" onChange={(e) => setForm((f) => ({ ...f, title: e.target.value, ...(f.id ? {} : { slug: slugify(e.target.value) }) }))} /></label>
       <label className="adm-field"><span>Résumé</span><textarea required minLength={10} maxLength={700} rows={3} value={form.excerpt} onChange={(e) => set("excerpt", e.target.value)} placeholder="Quelques lignes pour donner envie de lire…" /><small>{form.excerpt.length}/700</small></label>
-      <RichTextField label="Texte de l’article" value={form.body} onChange={(body) => setForm((f) => ({ ...f, body, readMinutes: readMinutes(body) }))} placeholder="Écrivez ici… Séparez les paragraphes par une ligne vide. Utilisez la barre d’outils pour les intertitres, citations, images, vidéos et audios." footer={<small>{form.body.trim().split(/\s+/).filter(Boolean).length} mots · ≈ {form.readMinutes} min de lecture</small>} />
+      <RichTextField label={isMedia ? "Description / transcription (facultatif)" : "Texte de l’article"} required={!isMedia} value={form.body} onChange={(body) => setForm((f) => ({ ...f, body, ...(isMedia ? {} : { readMinutes: readMinutes(body) }) }))} placeholder="Écrivez ici… Séparez les paragraphes par une ligne vide. Utilisez la barre d’outils pour les intertitres, citations, images, vidéos et audios." footer={<small>{form.body.trim().split(/\s+/).filter(Boolean).length} mots · ≈ {form.readMinutes} min de lecture</small>} />
     </EditorShell>
   );
 }

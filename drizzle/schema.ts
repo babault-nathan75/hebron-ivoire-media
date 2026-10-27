@@ -57,6 +57,14 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()).notNull(),
 });
 
+/** Failed sign-in counters and temporary locks (kept in the database so they hold across serverless instances). */
+export const authAttempts = pgTable("auth_attempts", {
+  key: varchar("key", { length: 200 }).primaryKey(),
+  failures: integer("failures").default(0).notNull(),
+  windowStart: timestamp("windowStart").defaultNow().notNull(),
+  lockedUntil: timestamp("lockedUntil"),
+});
+
 /** Messages sent from the public contact form. */
 export const contactMessages = pgTable("contact_messages", {
   id: serial("id").primaryKey(),
@@ -74,6 +82,16 @@ export const subscribers = pgTable("subscribers", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+/** Editorial sections (rubriques) managed from the back office. */
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  slug: varchar("slug", { length: 120 }).notNull().unique(),
+  description: varchar("description", { length: 300 }).default("").notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 /** Editorial articles, interviews, reports, and testimonies. */
 export const articles = pgTable(
   "articles",
@@ -85,6 +103,8 @@ export const articles = pgTable(
     excerpt: varchar("excerpt", { length: 700 }).notNull(),
     body: text("body").notNull(),
     imageUrl: text("imageUrl"),
+    kind: varchar("kind", { length: 16 }).default("text").notNull(),
+    mediaUrl: text("mediaUrl"),
     author: varchar("author", { length: 160 }),
     readMinutes: integer("readMinutes").default(5).notNull(),
     isFeatured: boolean("isFeatured").default(false).notNull(),

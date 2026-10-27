@@ -62,7 +62,7 @@ export function MessagesPanel() {
                     <div className="msg-body">
                       <p>{m.message}</p>
                       <div className="adm-actions">
-                        <a className="adm-btn adm-btn-primary" href={`mailto:${m.email}?subject=${encodeURIComponent("Re: votre message à Hébron-Ivoire")}`}><Mail size={15} /> Répondre</a>
+                        <a className="adm-btn adm-btn-primary" href={`mailto:${m.email}?subject=${encodeURIComponent("Re: votre message à Impact-Nation")}`}><Mail size={15} /> Répondre</a>
                         <button className="adm-btn adm-btn-ghost" onClick={() => markRead.mutate({ id: m.id, read: !m.readAt })}><MailOpen size={15} /> {m.readAt ? "Marquer non lu" : "Marquer lu"}</button>
                         <button className="adm-icon adm-danger" title="Supprimer" onClick={() => { if (window.confirm("Supprimer ce message ?")) removeMessage.mutate({ id: m.id }); }}><Trash2 size={16} /></button>
                       </div>
