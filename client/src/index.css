@@ -878,7 +878,7 @@ fieldset.admin-card legend { padding: 0 8px; color: var(--orange-dark); font: 70
 .image-field-label { color: var(--forest-deep); font-size: 12px; font-weight: 700; }
 .image-drop { position: relative; overflow: hidden; border: 1.5px dashed #c8d6cd; border-radius: 12px; background: #f4f9f6; transition: border-color .15s, background .15s; }
 .image-drop.is-dragging { border-color: var(--forest-soft); background: var(--sage-light); }
-.image-drop img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.image-drop img { display: block; width: 100%; max-height: 350px; object-fit: contain; background: #e7eee8; }
 .image-drop-empty { display: grid; justify-items: center; gap: 4px; width: 100%; padding: 28px 12px; border: 0; background: transparent; color: var(--forest); cursor: pointer; font-family: inherit; }
 .image-drop-empty small { color: #8a968e; font-size: 11px; }
 .image-drop-actions { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 6px; }
@@ -988,10 +988,12 @@ fieldset.admin-card legend { padding: 0 8px; color: var(--orange-dark); font: 70
 .prose-article li { margin-bottom: .4em; }
 .prose-article figure { margin: 1.8em 0; }
 .prose-article figure img, .prose-video { display: block; width: 100%; border-radius: 6px; }
+.prose-article figure img { max-height: 78vh; object-fit: contain; background: #f3f6f0; }
 .prose-article figcaption { margin-top: 8px; color: #8a968e; font-size: 13px; text-align: center; }
 .prose-embed { position: relative; margin: 1.8em 0; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; background: #000; }
 .prose-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .prose-video { margin: 1.8em 0; background: #000; }
+.prose-video.is-portrait { width: auto; max-width: 100%; height: min(78vh, 760px); margin-inline: auto; }
 .prose-audio { display: block; width: 100%; margin: 1.6em 0; }
 .share-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 40px; padding: 18px 0; border-top: 1px solid #e1eae4; border-bottom: 1px solid #e1eae4; }
 .share-bar > span { margin-right: 6px; color: #6f7c73; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }

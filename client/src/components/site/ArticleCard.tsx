@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Headphones, Play } from "lucide-react";
 import { slugify, type ArticleKind } from "@shared/slug";
 import { formatShort, timeAgo } from "@/lib/format";
+import { AdaptiveImage } from "./AdaptiveImage";
 
 export type CardArticle = {
   id: number;
@@ -31,7 +32,7 @@ export function Thumb({ article, ratio = "r169", className = "" }: { article: Ca
   const [broken, setBroken] = useState(false);
   return (
     <Link href={articleHref(article)} className={`np-thumb ${ratio} ${className}`} aria-label={article.title} tabIndex={-1}>
-      {article.imageUrl && !broken ? <img src={article.imageUrl} alt="" loading="lazy" onError={() => setBroken(true)} /> : <span className="np-ph"><b>{article.category}</b></span>}
+      {article.imageUrl && !broken ? <AdaptiveImage src={article.imageUrl} alt="" loading="lazy" framed onError={() => setBroken(true)} /> : <span className="np-ph"><b>{article.category}</b></span>}
       {kind === "video" && <span className="np-badge"><Play size={14} fill="currentColor" /></span>}
       {kind === "audio" && <span className="np-badge np-badge-audio"><Headphones size={14} /></span>}
     </Link>

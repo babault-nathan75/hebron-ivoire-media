@@ -5,6 +5,7 @@ import { useDocumentMeta } from "@/lib/seo";
 import { formatDay } from "@/lib/format";
 import { ArticleBody } from "@/components/site/ArticleBody";
 import { MediaEmbed } from "@/components/site/MediaEmbed";
+import { AdaptiveImage } from "@/components/site/AdaptiveImage";
 import { RowCard, rubriqueHref, type CardArticle } from "@/components/site/ArticleCard";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { Check, ChevronRight, Clock3, Facebook, Headphones, Link2, LoaderCircle, MessageCircle, Play, UserRound } from "lucide-react";
@@ -74,11 +75,11 @@ export default function ArticlePage() {
 
           {(isVideo || isAudio) && article.mediaUrl && (
             <div className={`np-player ${isAudio ? "np-player-audio" : ""}`}>
-              {isAudio && article.imageUrl && <img src={article.imageUrl} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
+              {isAudio && article.imageUrl && <AdaptiveImage src={article.imageUrl} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
               <MediaEmbed url={article.mediaUrl} poster={article.imageUrl} />
             </div>
           )}
-          {!isVideo && !isAudio && article.imageUrl && <figure className="np-cover"><img src={article.imageUrl} alt="" fetchPriority="high" onError={(e) => { e.currentTarget.parentElement!.style.display = "none"; }} /></figure>}
+          {!isVideo && !isAudio && article.imageUrl && <figure className="np-cover"><AdaptiveImage src={article.imageUrl} alt="" fetchPriority="high" onError={(e) => { e.currentTarget.parentElement!.style.display = "none"; }} /></figure>}
 
           <div className="np-article-body">
             {article.body.trim() && <ArticleBody source={article.body} />}

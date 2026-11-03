@@ -3,6 +3,7 @@ import { Link, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useDocumentMeta } from "@/lib/seo";
 import { ArticleBody } from "@/components/site/ArticleBody";
+import { AdaptiveImage } from "@/components/site/AdaptiveImage";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { ArrowLeft, CalendarDays, LoaderCircle, MapPin } from "lucide-react";
 import NotFound from "./NotFound";
@@ -35,7 +36,7 @@ export default function EventPage() {
               <span><MapPin size={14} /> {event.location}</span>
             </div>
           </header>
-          {event.imageUrl && <figure className="np-cover"><img src={event.imageUrl} alt="" /></figure>}
+          {event.imageUrl && <figure className="np-cover"><AdaptiveImage src={event.imageUrl} alt="" /></figure>}
           <div className="np-article-body"><ArticleBody source={event.details} /></div>
         </div>
       </main>

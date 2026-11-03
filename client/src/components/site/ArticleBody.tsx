@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import { MediaEmbed, mediaType } from "./MediaEmbed";
+import { AdaptiveImage } from "./AdaptiveImage";
 
 const SAFE_URL = /^(https?:\/\/|mailto:|\/|#)/i;
 
@@ -36,7 +37,7 @@ export function ArticleBody({ source }: { source: string }) {
         if (lines.every((l) => /^[-*]\s+/.test(l))) return <ul key={key}>{lines.map((l, i) => <li key={i}>{inline(l.replace(/^[-*]\s+/, ""), `${key}-${i}`)}</li>)}</ul>;
         if (lines.every((l) => /^\d+[.)]\s+/.test(l))) return <ol key={key}>{lines.map((l, i) => <li key={i}>{inline(l.replace(/^\d+[.)]\s+/, ""), `${key}-${i}`)}</li>)}</ol>;
         const image = /^!\[([^\]]*)\]\((\S+?)\)$/.exec(block);
-        if (image && SAFE_URL.test(image[2])) return <figure key={key}><img src={image[2]} alt={image[1]} loading="lazy" />{image[1] && <figcaption>{image[1]}</figcaption>}</figure>;
+        if (image && SAFE_URL.test(image[2])) return <figure key={key}><AdaptiveImage src={image[2]} alt={image[1]} loading="lazy" />{image[1] && <figcaption>{image[1]}</figcaption>}</figure>;
         if (lines.length === 1 && mediaType(block)) return <MediaEmbed key={key} url={block} />;
         return <p key={key}>{lines.map((l, i) => <Fragment key={i}>{i > 0 && <br />}{inline(l, `${key}-${i}`)}</Fragment>)}</p>;
       })}

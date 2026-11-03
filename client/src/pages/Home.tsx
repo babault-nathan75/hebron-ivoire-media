@@ -7,6 +7,7 @@ import { formatShort } from "@/lib/format";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { ContactForm } from "@/components/site/ContactForm";
 import { LeadCard, MidCard, NewsItem, RowCard, Thumb, articleHref, rubriqueHref, type CardArticle } from "@/components/site/ArticleCard";
+import { AdaptiveImage } from "@/components/site/AdaptiveImage";
 import { useDocumentMeta } from "@/lib/seo";
 
 const when = (a: CardArticle) => new Date(a.publishedAt ?? a.createdAt).getTime();
@@ -108,7 +109,7 @@ export default function Home() {
               <div className="np-videos-grid">
                 <Link href={articleHref(videos[0])} className="np-video-feature">
                   <span className="np-video-img">
-                    {videos[0].imageUrl ? <img src={videos[0].imageUrl} alt="" loading="lazy" /> : <span className="np-ph"><b>{videos[0].category}</b></span>}
+                    {videos[0].imageUrl ? <AdaptiveImage src={videos[0].imageUrl} alt="" loading="lazy" framed /> : <span className="np-ph"><b>{videos[0].category}</b></span>}
                     <span className="np-play"><Play size={30} fill="currentColor" /></span>
                   </span>
                   <strong>{videos[0].title}</strong>
@@ -118,7 +119,7 @@ export default function Home() {
                   {videos.slice(1).map((v) => (
                     <Link key={v.id} href={articleHref(v)} className="np-video-item">
                       <span className="np-video-img">
-                        {v.imageUrl ? <img src={v.imageUrl} alt="" loading="lazy" /> : <span className="np-ph" />}
+                        {v.imageUrl ? <AdaptiveImage src={v.imageUrl} alt="" loading="lazy" framed /> : <span className="np-ph" />}
                         <span className="np-play np-play-sm"><Play size={16} fill="currentColor" /></span>
                       </span>
                       <span><strong>{v.title}</strong><small>{v.category} · {formatShort(v.publishedAt ?? v.createdAt)}</small></span>
