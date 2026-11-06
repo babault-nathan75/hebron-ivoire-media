@@ -10,12 +10,16 @@ import Home from "./pages/Home";
 import ArticlePage from "./pages/ArticlePage";
 import ArticlesPage from "./pages/ArticlesPage";
 import EventPage from "./pages/EventPage";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/a-propos"} component={AboutPage} />
+      <Route path={"/contact"} component={ContactPage} />
       <Route path={"/article/:slug"} component={ArticlePage} />
       <Route path={"/evenement/:slug"} component={EventPage} />
       <Route path={"/rubrique/:slug"} component={ArticlesPage} />

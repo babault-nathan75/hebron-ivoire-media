@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useSiteText } from "@/lib/useSiteText";
 import { formatToday } from "@/lib/format";
-import { ArrowUpRight, Facebook, Instagram, LoaderCircle, Mail, MapPin, Search, Send, Youtube } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Facebook, Instagram, LoaderCircle, Mail, MapPin, Search, Send, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { ADMIN_PATH } from "@shared/adminPath";
 import { BrandMark } from "./BrandMark";
@@ -16,9 +16,10 @@ export function SiteHeader() {
   const t = useSiteText();
   const [location] = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [rubriquesOpen, setRubriquesOpen] = useState(false);
+  const rubriquesRef = useRef<HTMLLIElement>(null);
   const { data: categories } = trpc.content.categories.useQuery(undefined, { staleTime: 60_000 });
-  const { data: content } = trpc.content.listPublished.useQuery(undefined, { staleTime: 30_000 });
-  const hasKind = (kind: string) => content?.articles.some((a) => a.kind === kind);
+  const visibleCategories = (categories ?? []).filter((category) => category.count > 0);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -28,12 +29,26 @@ export function SiteHeader() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const links = [
-    { label: "Accueil", href: "/" },
-    ...(categories ?? []).filter((c) => c.count > 0).map((c) => ({ label: c.name, href: `/rubrique/${c.slug}` })),
-    ...(hasKind("video") ? [{ label: "Vidéos", href: "/videos" }] : []),
-    ...(hasKind("audio") ? [{ label: "Podcasts", href: "/podcasts" }] : []),
-  ];
+  useEffect(() => {
+    setRubriquesOpen(false);
+  }, [location]);
+
+  useEffect(() => {
+    if (!rubriquesOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!rubriquesRef.current?.contains(event.target as Node)) setRubriquesOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setRubriquesOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [rubriquesOpen]);
+
   const current = decodeURIComponent(location);
 
   return (
@@ -42,7 +57,7 @@ export function SiteHeader() {
         <div className="container">
           <span className="np-date">{formatToday()} · {t("city")}</span>
           <span className="np-top-links">
-            <a href="/#contact">Contact</a>
+            <Link href="/contact">Contact</Link>
             <a href="#newsletter" onClick={(e) => { e.preventDefault(); document.getElementById("newsletter")?.scrollIntoView({ behavior: "smooth" }); }}>Newsletter</a>
           </span>
         </div>
@@ -59,9 +74,31 @@ export function SiteHeader() {
       <nav className="np-nav" aria-label="Rubriques">
         <div className="container">
           <ul>
-            {links.map((l) => (
-              <li key={l.href}><Link href={l.href} className={current === decodeURIComponent(l.href) ? "on" : ""}>{l.label}</Link></li>
-            ))}
+            <li><Link href="/" className={current === "/" ? "on" : ""}>Accueil</Link></li>
+            <li ref={rubriquesRef} className={`np-nav-dropdown${rubriquesOpen ? " is-open" : ""}`}>
+              <button
+                type="button"
+                className={current.startsWith("/rubrique/") ? "on" : ""}
+                aria-expanded={rubriquesOpen}
+                aria-haspopup="true"
+                aria-controls="np-rubriques-menu"
+                onClick={() => setRubriquesOpen((open) => !open)}
+              >
+                Rubriques <ChevronDown size={14} aria-hidden="true" />
+              </button>
+              <ul className="np-dropdown-menu" id="np-rubriques-menu">
+                {visibleCategories.length > 0 ? visibleCategories.map((category) => (
+                  <li key={category.id}>
+                    <Link href={`/rubrique/${category.slug}`} className={current === `/rubrique/${category.slug}` ? "on" : ""}>
+                      {category.name}
+                    </Link>
+                  </li>
+                )) : <li className="np-dropdown-empty">Aucune rubrique disponible</li>}
+              </ul>
+            </li>
+            <li><Link href="/actualites" className={current === "/actualites" ? "on" : ""}>Actualités</Link></li>
+            <li><Link href="/a-propos" className={current === "/a-propos" ? "on" : ""}>À propos</Link></li>
+            <li><Link href="/contact" className={current === "/contact" ? "on" : ""}>Contactez-nous</Link></li>
           </ul>
           <button className="np-nav-search" onClick={() => setSearchOpen(true)} aria-label="Rechercher"><Search size={18} /></button>
         </div>
@@ -133,7 +170,7 @@ export function SiteFooter() {
           <h3>Nous joindre</h3>
           <p className="ft-line"><MapPin size={15} /> {t("city")}</p>
           <a className="ft-line" href={`mailto:${t("contactEmail")}`}><Mail size={15} /> {t("contactEmail")}</a>
-          <a className="ft-link-cta" href="/#contact">Contacter la rédaction <ArrowUpRight size={16} /></a>
+          <Link className="ft-link-cta" href="/contact">Contacter la rédaction <ArrowUpRight size={16} /></Link>
         </div>
       </div>
 
