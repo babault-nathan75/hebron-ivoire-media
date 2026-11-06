@@ -11,7 +11,7 @@ export type SiteField = {
 export const SITE_FIELDS: SiteField[] = [
   { key: "tagline", group: "Identité", label: "Slogan sous le logo", default: "Le média d’impact social et sociétal" },
   { key: "city", group: "Identité", label: "Ville / pays", default: "Abidjan, Côte d’Ivoire" },
-  { key: "siteDescription", group: "Identité", label: "Description du site (Google, aperçus de partage)", multiline: true, default: "Impact-Nation.net, le média d’impact social et sociétal : éclairer, transformer, bâtir." },
+  { key: "siteDescription", group: "Identité", label: "Description du site (Google, aperçus de partage)", multiline: true, default: "citedimpact.net, le média d’impact social et sociétal : éclairer, transformer, bâtir." },
 
   { key: "agendaTitle", group: "Page d’accueil", label: "Titre de la section événements", default: "Agenda" },
   { key: "videosTitle", group: "Page d’accueil", label: "Titre de la section vidéos", default: "Vidéos" },
@@ -21,7 +21,7 @@ export const SITE_FIELDS: SiteField[] = [
   { key: "contactText", group: "Contact", label: "Texte d’introduction", multiline: true, default: "Une information, un sujet à proposer, un témoignage ? Écrivez-nous : la rédaction vous répond." },
   { key: "contactEmail", group: "Contact", label: "E-mail de la rédaction", default: "contact@impact-nation.net" },
 
-  { key: "footerAbout", group: "Pied de page", label: "Présentation du média", multiline: true, default: "Impact-Nation.net est un média d’impact social et sociétal : nous éclairons les enjeux, valorisons les initiatives qui transforment la société et aidons à bâtir l’avenir." },
+  { key: "footerAbout", group: "Pied de page", label: "Présentation du média", multiline: true, default: "citedimpact.net est un média d’impact social et sociétal : nous éclairons les enjeux et valorisons les initiatives qui transforment la société." },
   { key: "facebookUrl", group: "Pied de page", label: "Lien Facebook", default: "https://www.facebook.com/" },
   { key: "instagramUrl", group: "Pied de page", label: "Lien Instagram", default: "https://www.instagram.com/" },
   { key: "youtubeUrl", group: "Pied de page", label: "Lien YouTube", default: "https://www.youtube.com/" },

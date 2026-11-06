@@ -149,7 +149,7 @@ export default function Admin() {
   return (
     <div className="adm-shell">
       <aside className="adm-sidebar">
-        <Link className="adm-brand" href="/"><img src="/brand/logo-emblem.png" alt="" /><strong><span><b>Impact</b><i>-nation</i><u>.net</u></span><small>Espace rédaction</small></strong></Link>
+        <Link className="adm-brand" href="/"><img src="/brand/logo-full.png" alt="Cité d’Impact.net" /></Link>
         <nav aria-label="Navigation de l’espace rédaction">
           {NAV.map(({ id, label, icon: Icon }) => (
             <button key={id} className={section === id ? "on" : ""} onClick={() => go(id)}><Icon size={17} /><span>{label}</span>{id === "messages" && (unread.data ?? 0) > 0 && <b className="adm-badge">{unread.data}</b>}</button>

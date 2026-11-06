@@ -13,6 +13,55 @@
   node_bundler = "none"
   included_files = ["dist/public/index.html"]
 
+# --- Redirect alternate domains to the canonical site ---
+[[redirects]]
+  from = "http://impactnation.net/*"
+  to = "https://impact-nation.net/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://impactnation.net/*"
+  to = "https://impact-nation.net/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.impactnation.net/*"
+  to = "https://impact-nation.net/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.impactnation.net/*"
+  to = "https://impact-nation.net/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://citedimpact.net/*"
+  to = "https://impact-nation.net/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://citedimpact.net/*"
+  to = "https://impact-nation.net/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.citedimpact.net/*"
+  to = "https://impact-nation.net/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.citedimpact.net/*"
+  to = "https://impact-nation.net/:splat"
+  status = 301
+  force = true
+
 # --- Dynamic routes: served by the function (API, SEO meta, sitemap) ---
 [[redirects]]
   from = "/api/*"

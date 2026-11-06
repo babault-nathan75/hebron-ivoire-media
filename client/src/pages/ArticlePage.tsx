@@ -32,7 +32,7 @@ export default function ArticlePage() {
   const [copied, setCopied] = useState(false);
   const article = data?.article;
 
-  useDocumentMeta({ title: article ? `${article.title} — Impact-Nation` : "Impact-Nation", description: article?.excerpt, image: article?.imageUrl });
+  useDocumentMeta({ title: article ? `${article.title} — Cité d’Impact` : "Cité d’Impact", description: article?.excerpt, image: article?.imageUrl });
   useEffect(() => { window.scrollTo({ top: 0 }); }, [slug]);
 
   if (isLoading) return <div className="editor-loading"><LoaderCircle className="spin" /> Chargement…</div>;

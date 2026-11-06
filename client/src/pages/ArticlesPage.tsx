@@ -22,7 +22,7 @@ export default function ArticlesPage() {
 
   const title = slug ? rubrique?.name ?? "Rubrique" : kind === "video" ? "Vidéos" : kind === "audio" ? "Podcasts" : "Toute l’actualité";
   const intro = slug ? rubrique?.description : kind === "video" ? "Reportages, interviews et émissions en vidéo." : kind === "audio" ? "Les podcasts et émissions audio à écouter où vous voulez." : "Tous les récits de la rédaction, du plus récent au plus ancien.";
-  useDocumentMeta({ title: `${title} — Impact-Nation`, description: intro || undefined });
+  useDocumentMeta({ title: `${title} — Cité d’Impact`, description: intro || undefined });
   const pages = Math.max(1, Math.ceil((data?.total ?? 0) / 9));
   const go = (p: number) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); };
 

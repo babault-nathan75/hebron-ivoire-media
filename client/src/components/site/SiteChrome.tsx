@@ -102,17 +102,11 @@ export function SiteFooter() {
   ];
   return (
     <footer className="site-footer ft">
-      <div className="container ft-cta" id="newsletter">
-        <div>
-          <span className="ft-kicker">Restez informé</span>
-          <h2>Les nouveaux récits, directement dans votre boîte e-mail.</h2>
-        </div>
-        <SubscribeForm />
-      </div>
-
       <div className="container ft-grid">
         <div className="ft-brand">
-          <BrandMark inverse />
+          <div className="ft-brand-mark">
+            <img src="/brand/logo-full.png" alt="Cité d’Impact.net — Le média d’impact social et sociétal" width={1188} height={425} />
+          </div>
           <p>{t("footerAbout")}</p>
           <div className="ft-socials" aria-label="Réseaux sociaux">
             {socials.map(({ label, href, icon: Icon, className }) => (
@@ -139,13 +133,13 @@ export function SiteFooter() {
           <h3>Nous joindre</h3>
           <p className="ft-line"><MapPin size={15} /> {t("city")}</p>
           <a className="ft-line" href={`mailto:${t("contactEmail")}`}><Mail size={15} /> {t("contactEmail")}</a>
-          <a className="ft-link-cta" href="/#contact">Contacter la rédaction <ArrowUpRight size={14} /></a>
+          <a className="ft-link-cta" href="/#contact">Contacter la rédaction <ArrowUpRight size={16} /></a>
         </div>
       </div>
 
       <div className="ft-bottom">
         <div className="container">
-          <span>© {new Date().getFullYear()} <a href={ADMIN_PATH} className="footer-admin-link">IMPACT-NATION.NET</a>. TOUS DROITS RÉSERVÉS.</span>
+          <span>© {new Date().getFullYear()} <a href={ADMIN_PATH} className="footer-admin-link">citedimpact.net</a>. Tous droits réservés.</span>
           <a href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Retour en haut ↑</a>
         </div>
       </div>

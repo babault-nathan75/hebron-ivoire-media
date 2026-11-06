@@ -26,7 +26,7 @@ export default function Home() {
   const { data, isLoading } = trpc.content.listPublished.useQuery(undefined, { staleTime: 30_000 });
   const { data: categories } = trpc.content.categories.useQuery(undefined, { staleTime: 60_000 });
   const [scrolled, setScrolled] = useState(false);
-  useDocumentMeta({ title: "Impact-Nation.net — Le média d’impact social et sociétal", description: t("siteDescription") });
+  useDocumentMeta({ title: "Cité d’Impact.net — Le média d’impact social et sociétal", description: t("siteDescription") });
 
   const view = useMemo(() => {
     const articles = (data?.articles ?? []) as CardArticle[];

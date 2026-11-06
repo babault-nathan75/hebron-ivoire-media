@@ -15,7 +15,7 @@ export default function EventPage() {
   const [, params] = useRoute("/evenement/:slug");
   const slug = params?.slug ?? "";
   const { data: event, isLoading } = trpc.content.event.useQuery({ slug }, { enabled: Boolean(slug), retry: false });
-  useDocumentMeta({ title: event ? `${event.title} — Impact-Nation` : "Impact-Nation", description: event?.excerpt, image: event?.imageUrl });
+  useDocumentMeta({ title: event ? `${event.title} — Cité d’Impact` : "Cité d’Impact", description: event?.excerpt, image: event?.imageUrl });
   useEffect(() => { window.scrollTo({ top: 0 }); }, [slug]);
 
   if (isLoading) return <div className="editor-loading"><LoaderCircle className="spin" /> Chargement…</div>;
